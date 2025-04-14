@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"kaizen-hq/auth"
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/gin-gonic/gin"
@@ -49,6 +50,26 @@ func main() {
 	// Set up routes
 	router.POST("/api/register", auth.RegisterHandler(service))
 	router.POST("/api/login", auth.LoginHandler(service))
+
+	// Protected routes (authentication required)
+	protected := router.Group("/api")
+	protected.Use(auth.AuthMiddleware())
+	{
+		// Example of a protected route
+		protected.GET("/user", func(c *gin.Context) {
+			// Get user ID from context (set by middleware)
+			tornID, _ := c.Get("tornID")
+
+			// Get user data
+			user, err := service.GetUserByTornID(tornID.(int))
+			if err != nil {
+				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+				return
+			}
+
+			c.JSON(http.StatusOK, user)
+		})
+	}
 
 	// Start the server
 	port := os.Getenv("PORT")

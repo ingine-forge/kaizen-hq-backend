@@ -58,12 +58,12 @@ func LoginHandler(service *AuthService) gin.HandlerFunc {
 		}
 
 		// Log in the user
-		user, err := service.Login(req.Username, req.Password)
+		response, err := service.Login(req.Username, req.Password)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 			return
 		}
 
-		c.JSON(http.StatusOK, user)
+		c.JSON(http.StatusOK, response)
 	}
 }
