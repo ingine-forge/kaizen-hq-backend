@@ -2,16 +2,31 @@ package auth
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Secret key for signing JWT tokens
-var jwtSecret = []byte("very-secretive-key")
-
 // TokenExpiration defines how long tokens are valid
 const TokenExpiration = 24 * time.Hour
+
+// GetJWTSecret returns the secret key from environment variables
+func GetJWTSecret() []byte {
+	secretKey := os.Getenv("JWT_SECRET")
+	if secretKey == "" {
+		if gin.Mode() == gin.ReleaseMode {
+			log.Fatal("JWT_SECRET environment variable is required in production")
+		}
+
+		// Fallback for development only
+		return []byte("default-fallback-secret-for-dev-only")
+	}
+
+	return []byte(secretKey)
+}
 
 // Claims represents the JWT claims
 type Claims struct {
@@ -39,7 +54,7 @@ func GenerateToken(user *User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// Sign token with secret key
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString(GetJWTSecret())
 	if err != nil {
 		return "", err
 	}
@@ -56,7 +71,7 @@ func ValidateToken(tokenString string) (*Claims, error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
 
-		return jwtSecret, nil
+		return GetJWTSecret(), nil
 	})
 
 	if err != nil {

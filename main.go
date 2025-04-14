@@ -17,7 +17,7 @@ func main() {
 	// Load environment variables
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Warning: Error loading .env file, using environment variables")
 	}
 
 	dbConnString := os.Getenv("DATABASE_URL")
