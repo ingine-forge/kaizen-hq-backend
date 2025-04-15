@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"kaizen-hq/auth"
+	tornapi "kaizen-hq/torn-api"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -21,6 +23,19 @@ func main() {
 	}
 
 	dbConnString := os.Getenv("DATABASE_URL")
+	apiKey := os.Getenv("API_KEY")
+
+	gymLogs, err := tornapi.NewClient().GetGymLogs(apiKey, time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC), time.Now())
+
+	if err != nil {
+		fmt.Printf("Error parsing logs:\n%v\n", err)
+		return
+	}
+
+	for _, log := range gymLogs {
+		fmt.Printf("Log ID: %s, Type: %s\n", log.ID, log.StatType)
+		fmt.Printf("Base data: Trains=%d, Energy =%d\n", log.BaseData.Trains, log.BaseData.EnergyUsed)
+	}
 
 	if dbConnString == "" {
 		log.Fatal("Missing DATABASE_URL environment variable")
