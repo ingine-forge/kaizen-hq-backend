@@ -2,97 +2,57 @@ package main
 
 import (
 	"context"
-	"fmt"
-	"kaizen-hq/auth"
-	tornapi "kaizen-hq/torn-api"
+	"kaizen-hq/config"
+	"kaizen-hq/internal/auth"
+	"kaizen-hq/internal/database"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/joho/godotenv"
+	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
-	// Load environment variables
-	err := godotenv.Load()
+	// Load configuration
+	cfg := config.Load()
+
+	// Initialize the database
+	db, err := database.NewDB(context.Background(), cfg)
 	if err != nil {
-		log.Println("Warning: Error loading .env file, using environment variables")
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
+	defer db.Close()
 
-	dbConnString := os.Getenv("DATABASE_URL")
-	apiKey := os.Getenv("API_KEY")
-
-	gymLogs, err := tornapi.NewClient().GetGymLogs(apiKey, time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC), time.Now())
-
-	if err != nil {
-		fmt.Printf("Error parsing logs:\n%v\n", err)
-		return
-	}
-
-	for _, log := range gymLogs {
-		fmt.Printf("Log ID: %s, Type: %s\n", log.ID, log.StatType)
-		fmt.Printf("Base data: Trains=%d, Energy =%d\n", log.BaseData.Trains, log.BaseData.EnergyUsed)
-	}
-
-	if dbConnString == "" {
-		log.Fatal("Missing DATABASE_URL environment variable")
-	}
-
-	dbpool, err := pgxpool.New(context.Background(), dbConnString)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to create connection pool: %v\n", err)
-		os.Exit(1)
-	}
-	defer dbpool.Close()
-
-	// Verify connection
-	if err := dbpool.Ping(context.Background()); err != nil {
-		log.Fatalf("Unable to ping database: %v", err)
-	}
-
-	log.Println("Connected to Supabase database!")
-
-	// Create auth components
-	store := &auth.Store{Pool: dbpool}
-	service := auth.NewAuthService(store)
+	// Initialize auth components
+	authRepo := auth.NewRepository(db)
+	authService := auth.NewService(authRepo, cfg)
+	authHandler := *auth.NewHandler(authService)
 
 	// Create Gin router
-	router := gin.Default()
+	r := gin.Default()
 
-	// Set up routes
-	router.POST("/api/register", auth.RegisterHandler(service))
-	router.POST("/api/login", auth.LoginHandler(service))
+	// Public routes
+	r.POST("/register", authHandler.Register)
+	r.POST("/login", authHandler.Login)
 
-	// Protected routes (authentication required)
-	protected := router.Group("/api")
-	protected.Use(auth.AuthMiddleware())
+	// Protected routes
+	protected := r.Group("/")
+	protected.Use(auth.AuthMiddleware(cfg))
 	{
-		// Example of a protected route
-		protected.GET("/user", func(c *gin.Context) {
-			// Get user ID from context (set by middleware)
-			tornID, _ := c.Get("tornID")
-
-			// Get user data
-			user, err := service.GetUserByTornID(tornID.(int))
-			if err != nil {
-				c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-				return
-			}
-
-			c.JSON(http.StatusOK, user)
+		protected.GET("/protected", func(c *gin.Context) {
+			tornID := c.MustGet("torn_id")
+			c.JSON(http.StatusOK, gin.H{"message": "Hello Torn User", "torn_id": tornID})
 		})
 	}
 
-	// Start the server
+	// Start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on port %s...", port)
+	log.Printf("Server starting on: %s", port)
+	r.Run(":" + port)
 
-	router.Run(":" + port)
 }
