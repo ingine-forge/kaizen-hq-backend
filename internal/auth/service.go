@@ -19,12 +19,18 @@ func NewService(repo *Repository, cfg *config.Config) *Service {
 }
 
 func (s *Service) Register(ctx context.Context, user *User) error {
+	// Check if user already exists
+	_, err := s.repo.GetUserByTornID(ctx, user.TornID)
+	if err == nil {
+		return errors.New("user with this Torn ID already exists")
+	}
+	
 	// Hash password
 	hashedPassword, err := HashPassword(user.Password)
 	if err != nil {
 		return err
 	}
-	user.Password = string(hashedPassword)
+	user.Password = hashedPassword
 
 	return s.repo.CreateUser(ctx, user)
 }

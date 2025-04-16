@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -15,13 +16,26 @@ func NewHandler(service *Service) *Handler {
 }
 
 func (h *Handler) Register(c *gin.Context) {
-	var user User
-	if err := c.ShouldBindJSON(&user); err != nil {
+	var req RegisterRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
 
+	user := User{
+		TornID:   req.TornID,
+		Username: req.Username,
+		Password: req.Password,
+		APIKey:   req.APIKey,
+	}
+
+	fmt.Println(user)
+
 	if err := h.service.Register(c.Request.Context(), &user); err != nil {
+		if err.Error() == "user with this Torn ID already exists" {
+			c.JSON(http.StatusConflict, gin.H{"error": "User with this Torn ID already exists"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

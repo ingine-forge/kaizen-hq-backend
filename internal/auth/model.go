@@ -16,6 +16,13 @@ type User struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+type RegisterRequest struct {
+	TornID   int    `json:"torn_id" binding:"required"`
+	Username string `json:"username" binding:"required"`
+	Password string `json:"password" binding:"required"`
+	APIKey   string `json:"api_key" binding:"required"`
+}
+
 type LoginRequest struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
