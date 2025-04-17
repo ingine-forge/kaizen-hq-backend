@@ -18,11 +18,16 @@ type LogEntry struct {
 
 // UserEnergyRecord represents the table for energy for each user in the database
 type UserEnergyRecord struct {
-	UUID       string    `json:"uuid"`
 	TornID     int64     `json:"torn_id" db:"torn_id"`
 	Username   string    `json:"username" db:"username"`
 	APIKey     string    `json:"-" db:"api_key"` // Never expose in JSON
 	EnergyUsed float64   `json:"energy_used" db:"energy_used"`
+	Date       time.Time `json:"date" db:"date"`
+}
+
+// EnergyUsageRecord represents the table for energy_usage
+type EnergyUsage struct {
+	EnergyUsed float64   `json:"energy" db:"energy"`
 	Date       time.Time `json:"date" db:"date"`
 }
 
@@ -39,4 +44,8 @@ type UserProfile struct {
 type EnergyQueryParams struct {
 	From int64 `json:"from"` // Unix timestamp
 	To   int64 `json:"to"`   // Unix timestamp
+}
+
+type EnergyUsageRequest struct {
+	TornID int `json:"torn_id"`
 }

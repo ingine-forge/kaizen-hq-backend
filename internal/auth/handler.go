@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -28,8 +27,6 @@ func (h *Handler) Register(c *gin.Context) {
 		Password: req.Password,
 		APIKey:   req.APIKey,
 	}
-
-	fmt.Println(user)
 
 	if err := h.service.Register(c.Request.Context(), &user); err != nil {
 		if err.Error() == "user with this Torn ID already exists" {

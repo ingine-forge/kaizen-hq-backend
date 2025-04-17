@@ -142,3 +142,12 @@ func (s *Service) ProcessAllUsers() error {
 	log.Printf("Processed %d/%d users", successCount, len(users))
 	return nil
 }
+
+func (s *Service) GetEnergyUsageFromDB(tornID int) ([]EnergyUsage, error) {
+	ctx := context.Background()
+	energyUsage, err := s.repo.GetDailyUsage(ctx, tornID)
+	if err != nil {
+		return nil, fmt.Errorf("something went wrong when fetching data from the database: %w", err)
+	}
+	return energyUsage, nil
+}

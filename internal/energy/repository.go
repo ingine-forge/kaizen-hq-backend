@@ -62,3 +62,24 @@ func (r *Repository) GetUsersWithAPIKeys(ctx context.Context) ([]UserEnergyRecor
 
 	return users, nil
 }
+
+func (r *Repository) GetDailyUsage(ctx context.Context, tornID int) ([]EnergyUsage, error) {
+	const query = `SELECT date, energy FROM energy_usage WHERE torn_id = $1`
+
+	rows, err := r.db.Query(ctx, query, tornID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var energyUsage []EnergyUsage
+	for rows.Next() {
+		var u EnergyUsage
+		if err := rows.Scan(&u.Date, &u.EnergyUsed); err != nil {
+			return nil, err
+		}
+		energyUsage = append(energyUsage, u)
+	}
+
+	return energyUsage, nil
+}

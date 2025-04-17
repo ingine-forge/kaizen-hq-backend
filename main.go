@@ -36,6 +36,7 @@ func main() {
 
 	// Handlers
 	authHandler := *auth.NewHandler(authService)
+	energyHandler := *energy.NewHandler(energyService)
 
 	// Run immediately on startup (for testing)
 	go func() {
@@ -73,6 +74,8 @@ func main() {
 			tornID := c.MustGet("torn_id")
 			c.JSON(http.StatusOK, gin.H{"message": "Hello Torn User", "torn_id": tornID})
 		})
+
+		protected.GET("/energyUsage", energyHandler.GetUserEnergyByID)
 	}
 
 	// Start server

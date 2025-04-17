@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"fmt"
 	"kaizen-hq/config"
 	"net/http"
 	"strings"
@@ -27,13 +28,10 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		claims := &Claims{}
-		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return []byte(cfg.JWTSecret), nil
-		})
-
-		if err != nil || !token.Valid {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		//Validate the token
+		claims, err := validateToken(cfg, tokenString)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			return
 		}
 
@@ -43,4 +41,28 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 		c.Next()
 	}
+}
+
+// ValidateToken checks if a token is valid and returns the claims
+func validateToken(cfg *config.Config, tokenString string) (*Claims, error) {
+	// Parse token
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
+		// Validate sigining method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+
+		return []byte(cfg.JWTSecret), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract claims
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
+		return claims, nil
+	}
+
+	return nil, fmt.Errorf("invalid token")
 }
