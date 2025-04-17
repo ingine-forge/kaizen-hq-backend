@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -30,7 +29,7 @@ func (r *Repository) GetLastEnergyRecord(ctx context.Context, tornID int64) (*ti
 	return &lastDate, nil
 }
 
-func (r *Repository) StoreDailyUsage(ctx context.Context, uuid uuid.UUID, tornID int64, energy float64, date time.Time) error {
+func (r *Repository) StoreDailyUsage(ctx context.Context, tornID int64, energy float64, date time.Time) error {
 	_, err := r.db.Exec(ctx, `
         INSERT INTO energy_usage (torn_id, date, energy, username)
         VALUES ($1, $2, $3,

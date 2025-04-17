@@ -7,10 +7,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -81,20 +79,20 @@ func (s *Service) ProcessUserEnergy(apiKey string, tornID int64) error {
 		return fmt.Errorf("failed to get last record: %w", err)
 	}
 
-	fmt.Println("last record found: ", lastRecord)
-
 	// 2. Determine time range
 	now := time.Now().UTC()
 	yesterdayEnd := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Add(-1 * time.Second)
+	yesterdayStart := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC).Add(-24 * time.Hour)
 	var fromTime time.Time
 
 	if lastRecord == nil {
 		// New user - fetch from signup
-		signupTimestamp, err := s.getSignupTimestamp(apiKey)
-		if err != nil {
-			return fmt.Errorf("failed to get signup time: %w", err)
-		}
-		fromTime = time.Unix(signupTimestamp, 0)
+		// signupTimestamp, err := s.getSignupTimestamp(apiKey)
+		// if err != nil {
+		// 	return fmt.Errorf("failed to get signup time: %w", err)
+		// }
+		// fromTime = time.Unix(signupTimestamp, 0)
+		fromTime = time.Unix(yesterdayStart.Unix(), 0)
 	} else {
 		// Existing user - fetch from day after last record
 		fromTime = lastRecord.Add(24 * time.Hour)
@@ -114,12 +112,7 @@ func (s *Service) ProcessUserEnergy(apiKey string, tornID int64) error {
 			return fmt.Errorf("failed to get energy for %s: %w", dayStart.Format("2006-01-02"), err)
 		}
 
-		uuidName := strconv.FormatInt(tornID, 10) + "_" + dayStart.Format("2006-01-02")
-		uuidNameSpace := uuid.NameSpaceDNS
-		deterministicUUID := uuid.NewSHA1(uuidNameSpace, []byte(uuidName))
-
-		fmt.Println(deterministicUUID)
-		if err := s.repo.StoreDailyUsage(ctx, deterministicUUID, tornID, energy, dayStart); err != nil {
+		if err := s.repo.StoreDailyUsage(ctx, tornID, energy, dayStart); err != nil {
 			return fmt.Errorf("failed to store energy for %s: %w", dayStart.Format("2006-01-02"), err)
 		}
 
