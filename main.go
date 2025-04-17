@@ -5,9 +5,11 @@ import (
 	"kaizen-hq/config"
 	"kaizen-hq/internal/auth"
 	"kaizen-hq/internal/database"
+	"kaizen-hq/internal/energy"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/joho/godotenv/autoload"
@@ -24,10 +26,37 @@ func main() {
 	}
 	defer db.Close()
 
-	// Initialize auth components
+	// Repositories
 	authRepo := auth.NewRepository(db)
+	energyRepo := energy.NewRepository(db)
+
+	// Services
 	authService := auth.NewService(authRepo, cfg)
+	energyService := energy.NewService(energyRepo, cfg.TornAPI.BaseURL)
+
+	// Handlers
 	authHandler := *auth.NewHandler(authService)
+
+	// Run immediately on startup (for testing)
+	go func() {
+		if err := energyService.ProcessAllUsers(); err != nil {
+			log.Printf("Initial energy tracking failed: %v", err)
+		}
+	}()
+
+	// Then schedule daily runs
+	go func() {
+		for {
+			now := time.Now().UTC()
+			next := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 5, 0, time.UTC) // 00:05 UTC
+			time.Sleep(time.Until(next))
+
+			log.Println("Starting daily energy tracking...")
+			if err := energyService.ProcessAllUsers(); err != nil {
+				log.Printf("Daily energy tracking failed: %v", err)
+			}
+		}
+	}()
 
 	// Create Gin router
 	r := gin.Default()

@@ -9,7 +9,7 @@ import (
 )
 
 func NewDB(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
-	db, err:= pgxpool.New(ctx, cfg.DBURL)
+	db, err := pgxpool.New(ctx, cfg.DBURL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database: %w", err)
 	}
