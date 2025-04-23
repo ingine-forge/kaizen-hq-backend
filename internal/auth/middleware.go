@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"kaizen-hq/config"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -13,18 +12,11 @@ import (
 // AuthMiddleware checks if the request ahs a valid JWT token
 func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Get the authorization header
-		authHeader := c.GetHeader("Authorization")
+		// Get the token from the cookie
+		tokenString, err := c.Cookie("token")
 
-		// Check if the header exists and has the right format
-		if authHeader == "" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			return
-		}
-
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		if tokenString == authHeader {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Bearer token required"})
+		if err != nil {
+			c.AbortWithStatusJSON(401, gin.H{"error": "Not logged in"})
 			return
 		}
 
