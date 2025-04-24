@@ -9,11 +9,17 @@ type TornAPIConfig struct {
 	BaseURL string
 }
 
+type CorsConfig struct {
+	ClientDomain string
+	ClientPort   string
+}
+
 type Config struct {
 	DBURL      string
 	JWTSecret  string
 	BcryptCost int
 	TornAPI    TornAPIConfig
+	CORS       CorsConfig
 }
 
 func Load() *Config {
@@ -24,6 +30,10 @@ func Load() *Config {
 		BcryptCost: getInt("BCRYPT_COST", 10),
 		TornAPI: TornAPIConfig{
 			BaseURL: "https://api.torn.com/",
+		},
+		CORS: CorsConfig{
+			ClientDomain: "localhost",
+			ClientPort:   "5173",
 		},
 	}
 }

@@ -79,6 +79,7 @@ func main() {
 	protected.Use(auth.AuthMiddleware(cfg))
 	{
 		protected.GET("/user/:tornID", userHandler.GetUserByTornID)
+		protected.GET("/user/me", userHandler.GetCurrentUser)
 		protected.GET("/energyUsage", energyHandler.GetUserEnergyByID)
 	}
 
@@ -96,7 +97,7 @@ func main() {
 // CORS middleware function definition
 func corsMiddleware() gin.HandlerFunc {
 	// Define allowed origins as a comma-separated string
-	originsString := "http://localhost:5173"
+	originsString := "http://" + config.Load().CORS.ClientDomain + ":" + config.Load().CORS.ClientPort
 	var allowedOrigins []string
 	if originsString != "" {
 		// Split the originsString into individual origins and store them in allowedOrigins slice
