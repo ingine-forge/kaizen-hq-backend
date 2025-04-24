@@ -1,4 +1,4 @@
-package auth
+package user
 
 import (
 	"context"
@@ -8,6 +8,8 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
+
+var ErrUserNotFound = errors.New("user not found")
 
 type Repository struct {
 	db *pgxpool.Pool
@@ -40,7 +42,7 @@ func (r *Repository) GetUserByTornID(ctx context.Context, tornID int) (*User, er
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, errors.New("user not found")
+			return nil, ErrUserNotFound
 		}
 		return nil, err
 	}

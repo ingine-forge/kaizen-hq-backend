@@ -3,28 +3,32 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"kaizen-hq/config"
+	"kaizen-hq/internal/user"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
+var ErrUserAlreadyExists = errors.New("user with this Torn ID already exists")
+
 type Service struct {
-	repo   *Repository
-	config *config.Config
+	userRepo *user.Repository
+	config   *config.Config
 }
 
-func NewService(repo *Repository, cfg *config.Config) *Service {
-	return &Service{repo: repo, config: cfg}
+func NewService(userRepo *user.Repository, cfg *config.Config) *Service {
+	return &Service{userRepo: userRepo, config: cfg}
 }
 
-func (s *Service) Register(ctx context.Context, user *User) error {
+func (s *Service) Register(ctx context.Context, user *user.User) error {
 	// Check if user already exists
-	_, err := s.repo.GetUserByTornID(ctx, user.TornID)
+	_, err := s.userRepo.GetUserByTornID(ctx, user.TornID)
 	if err == nil {
-		return errors.New("user with this Torn ID already exists")
+		return ErrUserAlreadyExists
 	}
-	
+
 	// Hash password
 	hashedPassword, err := HashPassword(user.Password)
 	if err != nil {
@@ -32,11 +36,11 @@ func (s *Service) Register(ctx context.Context, user *User) error {
 	}
 	user.Password = hashedPassword
 
-	return s.repo.CreateUser(ctx, user)
+	return s.userRepo.CreateUser(ctx, user)
 }
 
 func (s *Service) Login(ctx context.Context, req *LoginRequest) (string, error) {
-	user, err := s.repo.GetUserByUsername(ctx, req.Username)
+	user, err := s.userRepo.GetUserByUsername(ctx, req.Username)
 	if err != nil {
 		return "", errors.New("invalid credentials")
 	}
@@ -58,4 +62,9 @@ func (s *Service) Login(ctx context.Context, req *LoginRequest) (string, error) 
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString([]byte(s.config.JWTSecret))
+}
+
+func (s *Service) GetCurrentUser(ctx context.Context, tornID int) {
+	requester := ctx.Value("user")
+	fmt.Println(requester)
 }

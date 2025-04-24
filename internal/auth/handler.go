@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"kaizen-hq/internal/user"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	user := User{
+	user := user.User{
 		TornID:   req.TornID,
 		Username: req.Username,
 		Password: req.Password,
@@ -29,7 +30,7 @@ func (h *Handler) Register(c *gin.Context) {
 	}
 
 	if err := h.service.Register(c.Request.Context(), &user); err != nil {
-		if err.Error() == "user with this Torn ID already exists" {
+		if err == ErrUserAlreadyExists {
 			c.JSON(http.StatusConflict, gin.H{"error": "User with this Torn ID already exists"})
 			return
 		}

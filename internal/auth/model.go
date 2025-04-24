@@ -2,19 +2,10 @@ package auth
 
 import (
 	"kaizen-hq/config"
-	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
-
-type User struct {
-	TornID    int       `json:"torn_id"`
-	Username  string    `json:"username"`
-	Password  string    `json:"-"` // Skip in JSON responses
-	APIKey    string    `json:"api_key"`
-	CreatedAt time.Time `json:"created_at"`
-}
 
 type RegisterRequest struct {
 	TornID   int    `json:"torn_id" binding:"required"`

@@ -6,8 +6,8 @@ import (
 	"kaizen-hq/internal/auth"
 	"kaizen-hq/internal/database"
 	"kaizen-hq/internal/energy"
+	"kaizen-hq/internal/user"
 	"log"
-	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -30,16 +30,18 @@ func main() {
 	defer db.Close()
 
 	// Repositories
-	authRepo := auth.NewRepository(db)
+	userRepo := user.NewRepository(db)
 	energyRepo := energy.NewRepository(db)
 
 	// Services
-	authService := auth.NewService(authRepo, cfg)
+	authService := auth.NewService(userRepo, cfg)
+	userService := user.NewService(userRepo, cfg)
 	energyService := energy.NewService(energyRepo, cfg.TornAPI.BaseURL)
 
 	// Handlers
 	authHandler := *auth.NewHandler(authService)
 	energyHandler := *energy.NewHandler(energyService)
+	userHandler := *user.NewHandler(userService)
 
 	// Run immediately on startup (for testing)
 	go func() {
@@ -76,11 +78,7 @@ func main() {
 	protected := r.Group("/")
 	protected.Use(auth.AuthMiddleware(cfg))
 	{
-		protected.GET("/protected", func(c *gin.Context) {
-			tornID := c.MustGet("torn_id")
-			c.JSON(http.StatusOK, gin.H{"message": "Hello Torn User", "torn_id": tornID})
-		})
-
+		protected.GET("/user/:tornID", userHandler.GetUserByTornID)
 		protected.GET("/energyUsage", energyHandler.GetUserEnergyByID)
 	}
 
