@@ -44,11 +44,11 @@ func main() {
 	userHandler := *user.NewHandler(userService)
 
 	// Run immediately on startup (for testing)
-	go func() {
-		if err := energyService.ProcessAllUsers(); err != nil {
-			log.Printf("Initial energy tracking failed: %v", err)
-		}
-	}()
+	// go func() {
+	// 	if err := energyService.ProcessAllUsers(); err != nil {
+	// 		log.Printf("Initial energy tracking failed: %v", err)
+	// 	}
+	// }()
 
 	// Then schedule daily runs
 	go func() {
@@ -64,6 +64,7 @@ func main() {
 		}
 	}()
 
+	gin.SetMode(gin.ReleaseMode)
 	// Create Gin router
 	r := gin.Default()
 
