@@ -32,8 +32,8 @@ func Load() *Config {
 			BaseURL: "https://api.torn.com/",
 		},
 		CORS: CorsConfig{
-			ClientDomain: "localhost",
-			ClientPort:   "5173",
+			ClientDomain: os.Getenv("CLIENT_DOMAIN"),
+			ClientPort:   os.Getenv("CLIENT_PORT"),
 		},
 	}
 }
