@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SolidPoint Resource Organiser</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://fonts.googleapis.com/css?family=Montserrat:400,600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --sp-purple: #6c3fc5;
+            --sp-dark: #23213a;
+            --sp-light: #f5f4fa;
+            --sp-accent: #e0d7f7;
+            --sp-border: #dedbe8;
+            --sp-text: #23213a;
+            --sp-bg: #fff;
+            --sp-project: #b39ddb;
+            --sp-danger: #e57373;
+            --sp-weekend: #ffeaea;
+            --sp-group-divider: #e0d7f7;
+        }
+
+        body {
+            font-family: 'Montserrat', Arial, sans-serif;
+            background: var(--sp-light);
+            color: var(--sp-text);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: var(--sp-purple);
+            color: #fff;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo {
+            height: 40px;
+            margin-right: 16px;
+        }
+
+        h1 {
+            font-size: 1.5em;
+            margin: 0;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .toolbar {
+            background: var(--sp-bg);
+            padding: 8px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            border-bottom: 1px solid var(--sp-border);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .nav-buttons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-button {
+            background: var(--sp-accent);
+            border: 1px solid var(--sp-border);
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 1.2em;
+            line-height: 1;
+        }
+
+        .nav-button:hover {
+            background: var(--sp-purple);
+            color: #fff;
+        }
+
+        .toolbar button,
+        .toolbar select {
+            font-family: inherit;
+            font-size: 1em;
+            padding: 6px 12px;
+            border-radius: 4px;
+            border: 1px solid var(--sp-border);
+            background: var(--sp-accent);
+            color: var(--sp-text);
+            cursor: pointer;
+            margin-right: 8px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .toolbar button:hover,
+        .toolbar select:focus {
+            background: var(--sp-purple);
+            color: #fff;
+            outline: none;
+        }
+
+        .container {
+            display: flex;
+            height: calc(100vh - 90px);
+            min-height: 500px;
+        }
+
+        .sidebar {
+            width: 320px;
+            background: #fff;
+            border: 1px solid #dedbe8;
+            border-radius: 8px;
+            padding: 16px;
+            min-width: 180px;
+            transition: box-shadow 0.2s;
+        }
+
+        .add-btn {
+            background: #6c3fc5;
+            color: #fff;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-bottom: 12px;
+            transition: background 0.2s;
+        }
+
+        .add-btn:hover,
+        .add-resource-btn:hover {
+            background: #4b2a8a;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .group {
+            background: #e0d7f7;
+            border-radius: 6px;
+            margin-bottom: 16px;
+            padding: 10px;
+            transition: box-shadow 0.2s;
+        }
+
+        .group:focus-within {
+            box-shadow: 0 0 0 2px var(--sp-purple);
+        }
+
+        .group input {
+            font-size: 1em;
+            font-weight: 600;
+            border: none;
+            background: transparent;
+            color: #6c3fc5;
+            width: 80%;
+            outline: none;
+            transition: background 0.2s;
+        }
+
+        .group .delete-group {
+            float: right;
+            background: none;
+            border: none;
+            color: #6c3fc5;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .group .delete-group:hover {
+            color: var(--sp-danger);
+        }
+
+        .resources {
+            margin-top: 8px;
+        }
+
+        .resource {
+            display: flex;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .resource input {
+            font-size: 1em;
+            border: none;
+            background: transparent;
+            color: #23213a;
+            width: 80%;
+            outline: none;
+            transition: background 0.2s;
+        }
+
+        .resource .delete-resource {
+            background: none;
+            border: none;
+            color: #6c3fc5;
+            font-size: 1em;
+            cursor: pointer;
+            margin-left: 6px;
+            transition: color 0.2s;
+        }
+
+        .resource .delete-resource:hover {
+            color: var(--sp-danger);
+        }
+
+        .add-resource-btn {
+            background: #6c3fc5;
+            color: #fff;
+            border: none;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.95em;
+            margin-top: 6px;
+            transition: background 0.2s;
+        }
+
+        .timeline-area {
+            flex: 1;
+            overflow: auto;
+            background: var(--sp-light);
+            padding: 0;
+            position: relative;
+        }
+
+        .timeline-table {
+            border-collapse: collapse;
+            width: 100%;
+            min-width: 900px;
+            position: relative;
+        }
+
+        .timeline-table th,
+        .timeline-table td {
+            border: 1px solid var(--sp-border);
+            padding: 0;
+            text-align: center;
+            background: var(--sp-bg);
+            font-size: 0.95em;
+            min-width: 36px;
+            height: 28px;
+            position: relative;
+            transition: background 0.2s;
+        }
+
+        .timeline-table th {
+            background: var(--sp-accent);
+            color: var(--sp-purple);
+            font-weight: 600;
+            height: 32px;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+
+        .timeline-table .today-col {
+            background: #f3eaff !important;
+        }
+
+        .timeline-table .weekend-col {
+            background: var(--sp-weekend) !important;
+        }
+
+        .timeline-table .group-divider-row td {
+            background: var(--sp-group-divider) !important;
+            border-top: 3px solid var(--sp-purple);
+            height: 8px !important;
+            padding: 0 !important;
+            font-size: 0;
+        }
+
+        .timeline-table .group-header-row th {
+            background: #fff;
+            color: #6c3fc5;
+            font-size: 1.15em;
+            font-weight: 700;
+            border-top: none;
+            border-bottom: 2px solid #dedbe8;
+            text-align: left;
+            padding-left: 16px;
+            letter-spacing: 0.5px;
+            position: sticky;
+            left: 0;
+            z-index: 4;
+        }
+
+        .project-bar {
+            position: absolute;
+            height: 22px;
+            border-radius: 4px;
+            background: var(--sp-project);
+            color: #23213a;
+            font-size: 0.95em;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+            cursor: grab;
+            z-index: 2;
+            box-shadow: 0 1px 4px #0001;
+            border: 2px solid #fff;
+            transition: box-shadow 0.1s, background 0.2s;
+            user-select: none;
+            justify-content: space-between;
+            box-sizing: border-box;
+            pointer-events: auto;
+        }
+
+        .project-bar.selected {
+            box-shadow: 0 2px 8px #6c3fc555;
+            border: 2px solid var(--sp-purple);
+            opacity: 0.7;
+        }
+
+        .project-bar .color-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 6px;
+            border: 1px solid #fff;
+            cursor: pointer;
+            flex-shrink: 0;
+            transition: border 0.2s;
+        }
+
+        .project-bar .color-dot:hover {
+            border: 1px solid var(--sp-purple);
+        }
+
+        .project-bar .project-name {
+            margin-right: auto;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            pointer-events: none;
+            font-weight: 500;
+            font-size: 1em;
+            max-width: 160px;
+        }
+
+        .project-bar .bar-actions {
+            margin-left: auto;
+            display: flex;
+            gap: 2px;
+        }
+
+        .project-bar .bar-actions button {
+            background: none;
+            border: none;
+            color: var(--sp-purple);
+            cursor: pointer;
+            font-size: 1em;
+            padding: 0 2px;
+            transition: color 0.2s;
+        }
+
+        .project-bar .bar-actions button:hover {
+            color: var(--sp-danger);
+        }
+
+        .resize-handle {
+            width: 12px;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            cursor: ew-resize;
+            z-index: 3;
+        }
+
+        .resize-handle.left {
+            left: 0;
+        }
+
+        .resize-handle.right {
+            right: 0;
+        }
+
+        .add-project-btn {
+            background: var(--sp-purple);
+            color: #fff;
+            border: none;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+            margin: 2px 0 2px 0;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .add-project-btn:hover {
+            background: #4b2a8a;
+        }
+
+        .project-details {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px #0002;
+            z-index: 100;
+            min-width: 300px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .project-details h3 {
+            margin-top: 0;
+            font-weight: 600;
+            color: var(--sp-purple);
+        }
+
+        .project-details label {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .project-details input,
+        .project-details select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--sp-border);
+            border-radius: 4px;
+            font-size: 1em;
+            font-family: inherit;
+            margin-bottom: 12px;
+        }
+
+        .project-details textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: 8px;
+            border: 1px solid var(--sp-border);
+            border-radius: 4px;
+            font-family: inherit;
+            margin-bottom: 12px;
+            resize: vertical;
+        }
+
+        .project-details .buttons {
+            text-align: right;
+            margin-top: 16px;
+        }
+
+        .project-details .buttons button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1em;
+            font-family: inherit;
+            margin-left: 8px;
+            transition: background 0.2s, color 0.2s;
+        }
+
+        .project-details .buttons button.save {
+            background: var(--sp-purple);
+            color: #fff;
+        }
+
+        .project-details .buttons button.cancel {
+            background: #ddd;
+            color: #333;
+        }
+
+        .project-details .buttons button.delete {
+            background: var(--sp-danger);
+            color: #fff;
+        }
+
+        .project-details .close-area {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.08);
+            z-index: 99;
+        }
+
+        .color-swatches {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .color-swatch {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            cursor: pointer;
+            box-shadow: 0 0 0 2px #ccc;
+            transition: box-shadow 0.2s;
+        }
+
+        .color-swatch.selected {
+            box-shadow: 0 0 0 2px var(--sp-purple);
+        }
+
+        @media (max-width: 900px) {
+            .sidebar {
+                width: 120px;
+                padding: 6px;
+            }
+
+            .timeline-table {
+                min-width: 600px;
+            }
+
+            .project-details {
+                min-width: 180px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                min-width: 0;
+                border-radius: 0;
+            }
+
+            .timeline-area {
+                min-width: 0;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <img src="SolidPointLogoPurpleText.png" alt="SolidPoint Logo" class="logo" onerror="this.style.display='none'">
+        <h1>SolidPoint Resource Organiser</h1>
+    </header>
+    <div class="toolbar" role="toolbar" aria-label="Main toolbar">
+        <div class="nav-buttons">
+            <button class="nav-button" onclick="navigateTimeline(-1)" title="Previous period">←</button>
+            <button onclick="jumpToToday()" title="Scroll timeline to today">Today</button>
+            <select id="viewMode" onchange="setViewMode(this.value)">
+                <option value="week">Week</option>
+                <option value="2week">2 Weeks</option>
+                <option value="month">Month</option>
+            </select>
+            <button class="nav-button" onclick="navigateTimeline(1)" title="Next period">→</button>
+        </div>
+        <button onclick="exportCSV()">Export to CSV</button>
+        <span style="margin-left:auto;color:#888;font-size:0.95em;">All changes saved automatically</span>
+    </div>
+    <div class="container">
+        <aside class="sidebar" tabindex="0" aria-label="Groups and Resources">
+            <button class="add-btn" onclick="addGroup()" title="Add a new group" aria-label="Add Group">+ Add
+                Group</button>
+            <ul id="groups"></ul>
+        </aside>
+        <main class="timeline-area" id="timelineArea"></main>
+    </div>
+    <script>
+        // === DATA MODEL & STORAGE ===
+        let groups = JSON.parse(localStorage.getItem('sp_groups') || '[]');
+        let data = {
+            projects: [],
+            settings: {
+                viewMode: 'week',
+                timelineStart: null
+            }
+        };
+        function saveData() { localStorage.setItem('sp_resource_data', JSON.stringify(data)); }
+        function loadData() { let d = localStorage.getItem('sp_resource_data'); if (d) data = JSON.parse(d); }
+        function saveGroups() { localStorage.setItem('sp_groups', JSON.stringify(groups)); }
+        function uuid() { return '_' + Math.random().toString(36).substr(2, 9); }
+        function todayStr() { return (new Date()).toISOString().slice(0, 10); }
+        function addDays(date, days) { let d = new Date(date); d.setDate(d.getDate() + days); return d.toISOString().slice(0, 10); }
+        function daysBetween(a, b) { return Math.round((new Date(b) - new Date(a)) / 86400000); }
+        function formatDate(d) { let dt = new Date(d); return dt.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short' }); }
+
+        // === TIMELINE CALCULATION ===
+        let timelineStart = null, timelineEnd = null, timelineDates = [];
+        function calcTimeline() {
+            let view = data.settings.viewMode || 'week';
+            let today = new Date();
+            let start, end;
+            if (!data.settings.timelineStart) { start = new Date(today); start.setDate(start.getDate() - 7); }
+            else { start = new Date(data.settings.timelineStart); }
+            if (view === 'week') { end = new Date(start); end.setDate(start.getDate() + 6); }
+            if (view === '2week') { end = new Date(start); end.setDate(start.getDate() + 13); }
+            if (view === 'month') { end = new Date(start); end.setDate(start.getDate() + 29); }
+            timelineStart = start;
+            timelineEnd = end;
+            timelineDates = [];
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                timelineDates.push(new Date(d));
+            }
+        }
+
+        // === TIMELINE RENDERING ===
+        function renderTimeline() {
+            calcTimeline();
+            const area = document.getElementById('timelineArea');
+            area.innerHTML = '';
+            let table = document.createElement('table');
+            table.className = 'timeline-table';
+            // Header row
+            let thead = document.createElement('thead');
+            let tr = document.createElement('tr');
+            tr.appendChild(document.createElement('th'));
+            timelineDates.forEach((d, i) => {
+                let th = document.createElement('th');
+                th.textContent = formatDate(d);
+                if (d.toDateString() === (new Date()).toDateString()) th.className = 'today-col';
+                if (d.getDay() === 0 || d.getDay() === 6) th.classList.add('weekend-col');
+                tr.appendChild(th);
+            });
+            thead.appendChild(tr);
+            table.appendChild(thead);
+            // Body
+            let tbody = document.createElement('tbody');
+            let rowIndex = 0;
+            groups.forEach((group, gi) => {
+                // --- Group header row ---
+                let groupHeaderTr = document.createElement('tr');
+                groupHeaderTr.className = 'group-header-row';
+                let th = document.createElement('th');
+                th.colSpan = timelineDates.length + 1;
+                th.textContent = group.name;
+                groupHeaderTr.appendChild(th);
+                tbody.appendChild(groupHeaderTr);
+
+                // --- Group divider row (except first group) ---
+                if (gi > 0) {
+                    let dividerTr = document.createElement('tr');
+                    dividerTr.className = 'group-divider-row';
+                    for (let i = 0; i < timelineDates.length + 1; i++) {
+                        let td = document.createElement('td');
+                        dividerTr.appendChild(td);
+                    }
+                    tbody.appendChild(dividerTr);
+                }
+                group.resources.forEach((resource, ri) => {
+                    // Calculate max stack for this resource
+                    let projs = data.projects.filter(p => p.resourceId === resource.name);
+                    projs.sort((a, b) => new Date(a.start) - new Date(b.start));
+                    let stacks = [];
+                    projs.forEach(proj => {
+                        let placed = false;
+                        for (let s = 0; s < stacks.length; s++) {
+                            if (!isOverlap(proj, stacks[s][stacks[s].length - 1])) {
+                                stacks[s].push(proj);
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (!placed) stacks.push([proj]);
+                    });
+                    let maxStack = Math.max(1, stacks.length);
+                    let tr = document.createElement('tr');
+                    tr.style.height = (28 * maxStack) + "px";
+                    let tdName = document.createElement('td');
+                    tdName.style.fontWeight = '600';
+                    tdName.style.background = '#f8f6fc';
+                    tdName.style.position = 'relative';
+                    tdName.textContent = resource.name;
+                    let addProjBtn = document.createElement('button');
+                    addProjBtn.className = 'add-project-btn';
+                    addProjBtn.textContent = '+ Project';
+                    addProjBtn.onclick = function (e) { e.stopPropagation(); addProject(group, resource); };
+                    tdName.appendChild(document.createElement('br'));
+                    tdName.appendChild(addProjBtn);
+                    tr.appendChild(tdName);
+                    timelineDates.forEach((d, di) => {
+                        let td = document.createElement('td');
+                        td.dataset.date = d.toISOString().slice(0, 10);
+                        td.dataset.resource = resource.name;
+                        if (d.toDateString() === (new Date()).toDateString()) td.className = 'today-col';
+                        if (d.getDay() === 0 || d.getDay() === 6) td.classList.add('weekend-col');
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                    rowIndex++;
+                });
+            });
+            table.appendChild(tbody);
+            area.appendChild(table);
+            renderProjects(area, table);
+        }
+
+        // === PROJECT BAR RENDERING & DRAGGING ===
+        let dragProject = null, dragStart = null, resizeHandle = null, projectDetails = null, dragBarEl = null;
+        function renderProjects(area, table) {
+            let oldBars = area.querySelectorAll('.project-bar');
+            oldBars.forEach(b => b.remove());
+            let trs = table.querySelectorAll('tbody tr:not(.group-divider-row):not(.group-header-row)');
+            let rowY = 0;
+            groups.forEach(group => {
+                group.resources.forEach(resource => {
+                    let projs = data.projects.filter(p => p.resourceId === resource.name);
+                    projs.sort((a, b) => new Date(a.start) - new Date(b.start));
+                    let stacks = [];
+                    projs.forEach(proj => {
+                        let placed = false;
+                        for (let s = 0; s < stacks.length; s++) {
+                            if (!isOverlap(proj, stacks[s][stacks[s].length - 1])) {
+                                stacks[s].push(proj);
+                                placed = true;
+                                break;
+                            }
+                        }
+                        if (!placed) stacks.push([proj]);
+                    });
+                    stacks.forEach((stack, si) => {
+                        stack.forEach(proj => {
+                            let bar = document.createElement('div');
+                            bar.className = 'project-bar';
+                            bar.style.background = proj.color || 'var(--sp-project)';
+                            // Always position bar within its row and stack
+                            let tr = trs[rowY];
+                            let startIdx = timelineDates.findIndex(d => d.toISOString().slice(0, 10) === proj.start);
+                            let endIdx = timelineDates.findIndex(d => d.toISOString().slice(0, 10) === proj.end);
+                            if (startIdx === -1 || endIdx === -1) return;
+                            let cell = tr.children[startIdx + 1];
+                            let cell2 = tr.children[endIdx + 1];
+                            let left = cell.offsetLeft;
+                            let width = (cell2.offsetLeft - cell.offsetLeft) + cell2.offsetWidth - 2;
+                            bar.style.left = left + 'px';
+                            bar.style.width = width + 'px';
+                            bar.style.top = (tr.offsetTop + 3 + si * 26) + 'px';
+                            // Color dot
+                            let colorDot = document.createElement('span');
+                            colorDot.className = 'color-dot';
+                            colorDot.style.background = proj.color || 'var(--sp-project)';
+                            colorDot.title = "Edit project details";
+                            colorDot.tabIndex = 0;
+                            colorDot.setAttribute('aria-label', 'Edit project details');
+                            colorDot.onclick = e => { e.stopPropagation(); showProjectDetails(proj); };
+                            colorDot.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { showProjectDetails(proj); } };
+                            bar.appendChild(colorDot);
+                            // Name (static)
+                            let nameSpan = document.createElement('span');
+                            nameSpan.className = 'project-name';
+                            nameSpan.textContent = proj.name;
+                            nameSpan.title = proj.name;
+                            bar.appendChild(nameSpan);
+                            // Actions
+                            let barActions = document.createElement('span');
+                            barActions.className = 'bar-actions';
+                            barActions.innerHTML = `
+                <button title="Duplicate" aria-label="Duplicate project" onclick="duplicateProject('${proj.id}')">&#128209;</button>
+                <button title="Delete" aria-label="Delete project" onclick="confirmDeleteProject('${proj.id}')">&#10006;</button>
+              `;
+                            bar.appendChild(barActions);
+                            // Drag/resize
+                            bar.onmousedown = e => {
+                                dragProject = proj;
+                                dragStart = { x: e.clientX, y: e.clientY };
+                                dragBarEl = bar;
+                                bar.classList.add('selected');
+                                document.body.style.cursor = "grabbing";
+                                e.preventDefault();
+                            };
+                            // Resize handles
+                            let leftHandle = document.createElement('div');
+                            leftHandle.className = 'resize-handle left';
+                            leftHandle.title = "Resize project start";
+                            leftHandle.onmousedown = e => {
+                                resizeHandle = { proj: proj, side: 'left' };
+                                e.stopPropagation();
+                            };
+                            let rightHandle = document.createElement('div');
+                            rightHandle.className = 'resize-handle right';
+                            rightHandle.title = "Resize project end";
+                            rightHandle.onmousedown = e => {
+                                resizeHandle = { proj: proj, side: 'right' };
+                                e.stopPropagation();
+                            };
+                            bar.appendChild(leftHandle);
+                            bar.appendChild(rightHandle);
+                            area.appendChild(bar);
+                        });
+                    });
+                    rowY++;
+                });
+            });
+        }
+        function isOverlap(a, b) {
+            return !(new Date(a.start) > new Date(b.end) || new Date(a.end) < new Date(b.start));
+        }
+
+        // === DRAGGING AND RESIZING LOGIC (now supports moving to other resources) ===
+        function handleDrag(e) {
+            // --- DRAGGING ---
+            if (dragProject && dragBarEl) {
+                const table = document.querySelector('.timeline-table');
+                const trs = table.querySelectorAll('tbody tr:not(.group-divider-row):not(.group-header-row)');
+                let foundRow = null, foundCellIdx = null, foundRowIdx = null;
+                for (let rowIdx = 0; rowIdx < trs.length; rowIdx++) {
+                    const tr = trs[rowIdx];
+                    const tds = Array.from(tr.children).slice(1);
+                    for (let i = 0; i < tds.length; i++) {
+                        const rect = tds[i].getBoundingClientRect();
+                        if (
+                            e.clientX >= rect.left && e.clientX < rect.right &&
+                            e.clientY >= rect.top && e.clientY < rect.bottom
+                        ) {
+                            foundRow = tr;
+                            foundCellIdx = i;
+                            foundRowIdx = rowIdx;
+                            break;
+                        }
+                    }
+                    if (foundRow) break;
+                }
+                if (foundRow && foundCellIdx !== null) {
+                    // Snap to this row and date
+                    const resourceName = foundRow.children[0].childNodes[0].nodeValue.trim();
+                    let duration = daysBetween(dragProject.start, dragProject.end);
+                    dragProject.resourceId = resourceName;
+                    dragProject.start = timelineDates[foundCellIdx].toISOString().slice(0, 10);
+                    dragProject.end = addDays(dragProject.start, duration);
+                    saveData();
+                    renderTimeline();
+                }
+            }
+            // --- RESIZING ---
+            if (resizeHandle) {
+                const table = document.querySelector('.timeline-table');
+                const cells = table.querySelectorAll('tbody tr:not(.group-divider-row):not(.group-header-row)');
+                let rowIndex = -1, projRow = null;
+                groups.forEach((group) => {
+                    group.resources.forEach((resource) => {
+                        rowIndex++;
+                        if (resizeHandle.proj.resourceId === resource.name) {
+                            projRow = cells[rowIndex];
+                        }
+                    });
+                });
+                if (!projRow) return;
+                const tds = Array.from(projRow.children).slice(1);
+                for (let i = 0; i < tds.length; i++) {
+                    const rect = tds[i].getBoundingClientRect();
+                    if (e.clientX >= rect.left && e.clientX < rect.right) {
+                        let date = timelineDates[i].toISOString().slice(0, 10);
+                        if (resizeHandle.side === 'left') {
+                            if (new Date(date) < new Date(resizeHandle.proj.end)) {
+                                resizeHandle.proj.start = date;
+                            }
+                        } else {
+                            if (new Date(date) > new Date(resizeHandle.proj.start)) {
+                                resizeHandle.proj.end = date;
+                            }
+                        }
+                        saveData();
+                        renderTimeline();
+                        break;
+                    }
+                }
+            }
+        }
+        function endDrag() {
+            if (dragProject) {
+                dragProject = null;
+                dragStart = null;
+                dragBarEl = null;
+                let bars = document.querySelectorAll('.project-bar');
+                bars.forEach(bar => bar.classList.remove('selected'));
+                document.body.style.cursor = "";
+            }
+            if (resizeHandle) {
+                resizeHandle = null;
+            }
+        }
+
+        // === GROUP/RESOURCE ACTIONS ===
+        function addGroup() {
+            groups.push({ name: 'New Group', resources: [] });
+            saveGroups();
+            renderGroups();
+            renderTimeline();
+        }
+        function deleteGroup(idx) {
+            if (!confirm('Delete this group and all its resources?')) return;
+            groups.splice(idx, 1);
+            saveGroups();
+            renderGroups();
+            renderTimeline();
+        }
+        function addResource(group) {
+            group.resources.push({ name: 'New Resource' });
+            saveGroups();
+            renderGroups();
+            renderTimeline();
+        }
+        function deleteResource(group, idx) {
+            if (!confirm('Delete this resource?')) return;
+            group.resources.splice(idx, 1);
+            saveGroups();
+            renderGroups();
+            renderTimeline();
+        }
+
+        // === PROJECT ACTIONS ===
+        function addProject(group, resource) {
+            let today = todayStr();
+            data.projects.push({
+                id: uuid(),
+                name: 'New Project',
+                resourceId: resource.name,
+                groupId: group.name,
+                start: today,
+                end: today,
+                color: '#b39ddb',
+                notes: ''
+            });
+            saveData();
+            renderTimeline();
+        }
+        function duplicateProject(pid) {
+            let p = data.projects.find(p => p.id === pid);
+            if (!p) return;
+            let copy = { ...p, id: uuid(), name: p.name + ' (Copy)' };
+            data.projects.push(copy);
+            saveData(); renderTimeline();
+        }
+        function confirmDeleteProject(pid) {
+            if (confirm('Are you sure you want to delete this project?')) {
+                deleteProject(pid);
+            }
+        }
+        function deleteProject(pid) {
+            data.projects = data.projects.filter(p => p.id !== pid);
+            saveData(); renderTimeline();
+        }
+
+        // === PROJECT DETAILS PANEL ===
+        function showProjectDetails(proj) {
+            closeProjectDetails();
+            let closeArea = document.createElement('div');
+            closeArea.className = 'close-area';
+            closeArea.onclick = closeProjectDetails;
+            closeArea.tabIndex = 0;
+            document.body.appendChild(closeArea);
+
+            // Color swatches
+            const swatches = ['#b39ddb', '#6c3fc5', '#e57373', '#81c784', '#ffd54f', '#64b5f6', '#f06292', '#a1887f'];
+            let swatchHTML = '<div class="color-swatches">';
+            swatches.forEach(color => {
+                swatchHTML += `<div class="color-swatch${proj.color === color ? ' selected' : ''}" style="background:${color}" onclick="document.getElementById('projectColor').value='${color}';document.getElementById('projectColor').dispatchEvent(new Event('input'))"></div>`;
+            });
+            swatchHTML += '</div>';
+
+            projectDetails = document.createElement('div');
+            projectDetails.className = 'project-details';
+            projectDetails.innerHTML = `
+        <h3>Project Details</h3>
+        <label>Name:</label>
+        <input type="text" id="projectName" value="${proj.name}" style="width: 100%">
+        <label>Start Date:</label>
+        <input type="date" id="projectStart" value="${proj.start}">
+        <label>End Date:</label>
+        <input type="date" id="projectEnd" value="${proj.end}">
+        <label>Color:</label>
+        ${swatchHTML}
+        <input type="color" id="projectColor" value="${proj.color}">
+        <label>Notes:</label>
+        <textarea id="projectNotes">${proj.notes || ''}</textarea>
+        <div class="buttons">
+          <button class="cancel" onclick="closeProjectDetails()">Cancel</button>
+          <button class="delete" onclick="confirmDeleteProject('${proj.id}')">Delete</button>
+          <button class="save" onclick="saveProjectDetails('${proj.id}')">Save</button>
+        </div>
+      `;
+            document.body.appendChild(projectDetails);
+
+            // Live color update
+            document.getElementById('projectColor').addEventListener('input', function (e) {
+                proj.color = e.target.value;
+                saveData();
+                renderTimeline();
+                // Update swatch highlight
+                document.querySelectorAll('.color-swatch').forEach(swatch => {
+                    swatch.classList.toggle('selected', swatch.style.backgroundColor === e.target.value);
+                });
+            });
+
+            setTimeout(() => {
+                document.addEventListener('keydown', escCloseListener);
+            }, 10);
+        }
+        function saveProjectDetails(pid) {
+            let proj = data.projects.find(p => p.id === pid);
+            if (!proj) return;
+            proj.name = document.getElementById('projectName').value;
+            proj.start = document.getElementById('projectStart').value;
+            proj.end = document.getElementById('projectEnd').value;
+            proj.color = document.getElementById('projectColor').value;
+            proj.notes = document.getElementById('projectNotes').value;
+            saveData();
+            renderTimeline();
+            closeProjectDetails();
+        }
+        function closeProjectDetails() {
+            if (projectDetails) {
+                projectDetails.remove();
+                projectDetails = null;
+            }
+            let closeArea = document.querySelector('.close-area');
+            if (closeArea) closeArea.remove();
+            document.removeEventListener('keydown', escCloseListener);
+        }
+        function escCloseListener(e) {
+            if (e.key === "Escape") closeProjectDetails();
+        }
+
+        // === TOOLBAR & NAVIGATION ===
+        function jumpToToday() {
+            data.settings.timelineStart = todayStr();
+            saveData(); renderTimeline();
+        }
+        function setViewMode(mode) {
+            data.settings.viewMode = mode;
+            saveData(); renderTimeline();
+        }
+        function exportCSV() {
+            let rows = [['Group', 'Resource', 'Project', 'Start', 'End', 'Color', 'Notes']];
+            data.projects.forEach(p => {
+                let group = groups.find(g => g.id === p.groupId);
+                let resource = group ? group.resources.find(r => r.id === p.resourceId) : null;
+                rows.push([
+                    group ? group.name : '',
+                    resource ? resource.name : '',
+                    p.name,
+                    p.start,
+                    p.end,
+                    p.color || '',
+                    p.notes || ''
+                ]);
+            });
+            let csv = rows.map(r => r.map(x => `"${x}"`).join(',')).join('\n');
+            let blob = new Blob([csv], { type: 'text/csv' });
+            let a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'solidpoint_resource_export.csv';
+            a.click();
+        }
+        function navigateTimeline(direction) {
+            let days = direction * (data.settings.viewMode === 'month' ? 30 :
+                data.settings.viewMode === '2week' ? 14 : 7);
+            let start = new Date(data.settings.timelineStart || todayStr());
+            start.setDate(start.getDate() + days);
+            data.settings.timelineStart = start.toISOString().slice(0, 10);
+            saveData();
+            renderTimeline();
+        }
+
+        // === INITIALISATION ===
+        function init() {
+            loadData();
+            renderGroups();
+            renderTimeline();
+            document.getElementById('viewMode').value = data.settings.viewMode || 'week';
+            document.addEventListener('mousemove', handleDrag);
+            document.addEventListener('mouseup', endDrag);
+        }
+        function renderGroups() {
+            const groupsEl = document.getElementById('groups');
+            groupsEl.innerHTML = '';
+            groups.forEach((group, gi) => {
+                const groupLi = document.createElement('li');
+                groupLi.className = 'group';
+                const groupName = document.createElement('input');
+                groupName.value = group.name;
+                groupName.onchange = e => {
+                    group.name = e.target.value;
+                    saveGroups();
+                    renderTimeline();
+                };
+                groupLi.appendChild(groupName);
+                const delGroupBtn = document.createElement('button');
+                delGroupBtn.className = 'delete-group';
+                delGroupBtn.title = 'Delete Group';
+                delGroupBtn.innerHTML = '&times;';
+                delGroupBtn.onclick = () => {
+                    if (confirm('Delete this group and all its resources?')) {
+                        groups.splice(gi, 1);
+                        saveGroups();
+                        renderGroups();
+                        renderTimeline();
+                    }
+                };
+                groupLi.appendChild(delGroupBtn);
+                const resUl = document.createElement('ul');
+                resUl.className = 'resources';
+                group.resources.forEach((res, ri) => {
+                    const resLi = document.createElement('li');
+                    resLi.className = 'resource';
+                    const resName = document.createElement('input');
+                    resName.value = res.name;
+                    resName.onchange = e => {
+                        res.name = e.target.value;
+                        saveGroups();
+                        renderTimeline();
+                    };
+                    resLi.appendChild(resName);
+                    const delResBtn = document.createElement('button');
+                    delResBtn.className = 'delete-resource';
+                    delResBtn.title = 'Delete Resource';
+                    delResBtn.innerHTML = '&times;';
+                    delResBtn.onclick = () => {
+                        group.resources.splice(ri, 1);
+                        saveGroups();
+                        renderGroups();
+                        renderTimeline();
+                    };
+                    resLi.appendChild(delResBtn);
+                    resUl.appendChild(resLi);
+                });
+                const addResBtn = document.createElement('button');
+                addResBtn.className = 'add-resource-btn';
+                addResBtn.textContent = '+ Add Resource';
+                addResBtn.onclick = () => {
+                    group.resources.push({ name: 'New Resource' });
+                    saveGroups();
+                    renderGroups();
+                    renderTimeline();
+                };
+                groupLi.appendChild(resUl);
+                groupLi.appendChild(addResBtn);
+                groupsEl.appendChild(groupLi);
+            });
+        }
+        document.addEventListener('keydown', function (e) {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowLeft') navigateTimeline(-1);
+            if (e.key === 'ArrowRight') navigateTimeline(1);
+        });
+        window.onload = init;
+    </script>
+</body>
+
+</html>

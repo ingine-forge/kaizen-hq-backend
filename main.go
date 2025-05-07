@@ -2,11 +2,11 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"kaizen-hq/config"
 	"kaizen-hq/internal/auth"
 	"kaizen-hq/internal/client/torn"
 	"kaizen-hq/internal/database"
-	"kaizen-hq/internal/energy"
 	"kaizen-hq/internal/faction"
 	"kaizen-hq/internal/user"
 	"log"
@@ -17,8 +17,14 @@ import (
 	"slices"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-co-op/gocron/v2"
 	_ "github.com/joho/godotenv/autoload"
 )
+
+func RunMidnightTask(factionService *faction.Service) {
+	fmt.Println("Running task at:", time.Now().UTC())
+	// factionService.UpdateGymEnergy()
+}
 
 func main() {
 	// Load configuration
@@ -36,46 +42,51 @@ func main() {
 
 	// Repositories
 	userRepo := user.NewRepository(db)
-	energyRepo := energy.NewRepository(db)
 	factionRepo := faction.NewRepository(db)
 
 	// Services
 	authService := auth.NewService(userRepo, cfg)
 	userService := user.NewService(userRepo, cfg)
-	energyService := energy.NewService(energyRepo, cfg.TornAPI.BaseURL)
 	factionService := faction.NewService(factionRepo, cfg, tornClient)
 
 	// Handlers
 	authHandler := *auth.NewHandler(authService)
-	energyHandler := *energy.NewHandler(energyService)
 	userHandler := *user.NewHandler(userService)
 
-	// Run immediately on startup (for testing)
-	go func() {
-		if err := energyService.ProcessAllUsers(); err != nil {
-			log.Printf("Initial energy tracking failed: %v", err)
-		}
-	}()
+	location, err := time.LoadLocation(time.UTC.String())
+	fmt.Println(err)
 
-	go func() {
-		if err := factionService.UpdateGymEnergy(); err != nil {
-			log.Printf("Error updating faction data: %v", err)
-		}
-	}()
+	// Create a new scheduler
+	s, err := gocron.NewScheduler(gocron.WithLocation(location))
+	if err != nil {
+		// Handle error
+		fmt.Println("Error creating scheduler:", err)
+		return
+	}
 
-	// Then schedule daily runs
-	go func() {
-		for {
-			now := time.Now().UTC()
-			next := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 5, 0, time.UTC) // 00:05 UTC
-			time.Sleep(time.Until(next))
+	// Define the cron expression for midnight UTC
+	cronExpr := "00 13 * * *" // At 00:00 UTC every day
 
-			log.Println("Starting daily energy tracking...")
-			if err := energyService.ProcessAllUsers(); err != nil {
-				log.Printf("Daily energy tracking failed: %v", err)
+	// Create a new job with the cron expression
+	_, err = s.NewJob(
+		gocron.CronJob(cronExpr, false),
+		gocron.NewTask(func() {
+			currentTime := time.Now().UTC()
+			if currentTime.Second() != 0 {
+				waitForSecond := time.Second * time.Duration(60-currentTime.Second())
+				time.Sleep(waitForSecond)
 			}
-		}
-	}()
+			RunMidnightTask(factionService)
+		}),
+	)
+	if err != nil {
+		// Handle error
+		fmt.Println("Error creating job:", err)
+		return
+	}
+
+	// Start the scheduler
+	s.Start()
 
 	// Create Gin router
 	r := gin.Default()
@@ -92,7 +103,6 @@ func main() {
 	protected.Use(auth.AuthMiddleware(cfg))
 	{
 		protected.GET("/user/:tornID", userHandler.GetUserByTornID)
-		protected.GET("/energyUsage", energyHandler.GetUserEnergyByID)
 	}
 
 	// Start server
