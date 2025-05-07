@@ -4,8 +4,10 @@ import (
 	"context"
 	"kaizen-hq/config"
 	"kaizen-hq/internal/auth"
+	"kaizen-hq/internal/client/torn"
 	"kaizen-hq/internal/database"
 	"kaizen-hq/internal/energy"
+	"kaizen-hq/internal/faction"
 	"kaizen-hq/internal/user"
 	"log"
 	"os"
@@ -29,14 +31,19 @@ func main() {
 	}
 	defer db.Close()
 
+	// Clients
+	tornClient := torn.NewTornClient(os.Getenv("API_KEY"))
+
 	// Repositories
 	userRepo := user.NewRepository(db)
 	energyRepo := energy.NewRepository(db)
+	factionRepo := faction.NewRepository(db)
 
 	// Services
 	authService := auth.NewService(userRepo, cfg)
 	userService := user.NewService(userRepo, cfg)
 	energyService := energy.NewService(energyRepo, cfg.TornAPI.BaseURL)
+	factionService := faction.NewService(factionRepo, cfg, tornClient)
 
 	// Handlers
 	authHandler := *auth.NewHandler(authService)
@@ -47,6 +54,12 @@ func main() {
 	go func() {
 		if err := energyService.ProcessAllUsers(); err != nil {
 			log.Printf("Initial energy tracking failed: %v", err)
+		}
+	}()
+
+	go func() {
+		if err := factionService.UpdateGymEnergy(); err != nil {
+			log.Printf("Error updating faction data: %v", err)
 		}
 	}()
 
