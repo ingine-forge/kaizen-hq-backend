@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"kaizen-hq/bootstrap"
 	"kaizen-hq/config"
 	"kaizen-hq/internal/auth"
 	"kaizen-hq/internal/client/torn"
 	"kaizen-hq/internal/database"
 	"kaizen-hq/internal/faction"
+	"kaizen-hq/internal/permission"
+	"kaizen-hq/internal/role"
 	"kaizen-hq/internal/user"
 	"log"
 	"os"
@@ -23,10 +26,11 @@ import (
 
 func RunMidnightTask(factionService *faction.Service) {
 	fmt.Println("Running task at:", time.Now().UTC())
-	// factionService.UpdateGymEnergy()
+	factionService.UpdateGymEnergy()
 }
 
 func main() {
+	ctx := context.Background()
 	// Load configuration
 	cfg := config.Load()
 
@@ -43,15 +47,22 @@ func main() {
 	// Repositories
 	userRepo := user.NewRepository(db)
 	factionRepo := faction.NewRepository(db)
+	roleRepo := role.NewRepository(db)
+	permissionRepo := permission.NewRepository(db)
 
 	// Services
-	authService := auth.NewService(userRepo, cfg)
 	userService := user.NewService(userRepo, cfg)
+	authService := auth.NewService(userService, cfg)
 	factionService := faction.NewService(factionRepo, cfg, tornClient)
+	roleService := role.NewService(roleRepo, cfg)
+	permissionService := permission.NewService(permissionRepo, cfg)
 
 	// Handlers
 	authHandler := *auth.NewHandler(authService)
 	userHandler := *user.NewHandler(userService)
+
+	// Handle admin creation
+	bootstrap.SeedSystem(ctx, userService, roleService, permissionService)
 
 	location, err := time.LoadLocation(time.UTC.String())
 	fmt.Println(err)
@@ -65,7 +76,7 @@ func main() {
 	}
 
 	// Define the cron expression for midnight UTC
-	cronExpr := "00 13 * * *" // At 00:00 UTC every day
+	cronExpr := "00 00 * * *" // At 00:00 UTC every day
 
 	// Create a new job with the cron expression
 	_, err = s.NewJob(
