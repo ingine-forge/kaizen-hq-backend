@@ -6,6 +6,7 @@ import (
 	"kaizen-hq/bootstrap"
 	"kaizen-hq/config"
 	"kaizen-hq/internal/auth"
+	"kaizen-hq/internal/bot"
 	"kaizen-hq/internal/client/torn"
 	"kaizen-hq/internal/database"
 	"kaizen-hq/internal/faction"
@@ -13,8 +14,11 @@ import (
 	"kaizen-hq/internal/role"
 	"kaizen-hq/internal/user"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"slices"
@@ -24,12 +28,32 @@ import (
 	_ "github.com/joho/godotenv/autoload"
 )
 
+var BotID string
+
 func RunMidnightTask(factionService *faction.Service) {
 	fmt.Println("Running task at:", time.Now().UTC())
 	factionService.UpdateGymEnergy()
 }
 
 func main() {
+	token := config.Load().DiscordBotToken
+
+	if token == "" {
+		fmt.Println("Missing DISCORD_TOKEN env variable")
+		return
+	}
+
+	bot, err := bot.NewBot(token)
+	if err != nil {
+		log.Fatalf("Error creating bot: %v", err)
+	}
+
+	go func() {
+		if err := bot.Start(); err != nil {
+			log.Fatalf("Error starting bot: %v", err)
+		}
+	}()
+
 	ctx := context.Background()
 	// Load configuration
 	cfg := config.Load()
@@ -122,8 +146,37 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on: %s", port)
-	r.Run(":" + port)
+	// Create the HTTP server
+	server := &http.Server{
+		Addr:    ":8080",
+		Handler: r,
+	}
+
+	go func() {
+		log.Println("HTTP server running on :8080")
+		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("HTTP server error: %s\n", err)
+		}
+	}()
+
+	// Wait for interrupt signal
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	// Shut down bot
+	if err := bot.Stop(); err != nil {
+		log.Printf("Error stopping bot: %v", err)
+	}
+
+	// Graceful HTTP shutdown
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := server.Shutdown(ctx); err != nil {
+		log.Fatalf("HTTP server forced to shutdown: %v", err)
+	}
+
+	log.Println("Server exited")
 
 }
 
