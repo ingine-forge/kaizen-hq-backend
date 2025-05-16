@@ -1,6 +1,7 @@
 package bot
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/bwmarrin/discordgo"
@@ -69,19 +70,36 @@ func (b *Bot) registerCommands() error {
 	return nil
 }
 
-// Unregister slash commands on shutdown
+// Unregister all slash commands on shutdown (both global and guild-specific)
 func (b *Bot) unregisterCommands() error {
-	registeredCommands, err := b.session.ApplicationCommands(b.session.State.User.ID, "")
+	// 1. Unregister global commands
+	globalCommands, err := b.session.ApplicationCommands(b.session.State.User.ID, "")
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to fetch global commands: %w", err)
 	}
 
-	for _, v := range registeredCommands {
-		err := b.session.ApplicationCommandDelete(b.session.State.User.ID, "", v.ID)
-		if err != nil {
-			return err
+	for _, cmd := range globalCommands {
+		if err := b.session.ApplicationCommandDelete(b.session.State.User.ID, "", cmd.ID); err != nil {
+			return fmt.Errorf("failed to delete global command '%s': %w", cmd.Name, err)
 		}
 	}
+
+	// 2. Unregister guild-specific commands
+	// Get all guilds the bot is a member of
+	for _, guild := range b.session.State.Guilds {
+		guildCommands, err := b.session.ApplicationCommands(b.session.State.User.ID, guild.ID)
+		if err != nil {
+			return fmt.Errorf("failed to fetch guild commands for %s: %w", guild.Name, err)
+		}
+
+		for _, cmd := range guildCommands {
+			if err := b.session.ApplicationCommandDelete(b.session.State.User.ID, guild.ID, cmd.ID); err != nil {
+				return fmt.Errorf("failed to delete guild command '%s' from guild '%s': %w",
+					cmd.Name, guild.Name, err)
+			}
+		}
+	}
+
 	return nil
 }
 
