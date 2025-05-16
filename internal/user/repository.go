@@ -29,7 +29,6 @@ func (r *Repository) CreateUser(ctx context.Context, user *User) (int, error) {
 		fmt.Println(err)
 		return 0, fmt.Errorf("failed to create user: %w", err)
 	}
-	fmt.Println("User ID found: ", user.ID)
 
 	return user.ID, err
 }

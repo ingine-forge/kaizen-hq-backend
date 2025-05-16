@@ -11,6 +11,7 @@ import (
 	"kaizen-hq/internal/database"
 	"kaizen-hq/internal/faction"
 	"kaizen-hq/internal/permission"
+	"kaizen-hq/internal/profile"
 	"kaizen-hq/internal/role"
 	"kaizen-hq/internal/user"
 	"log"
@@ -209,6 +210,7 @@ type Repositories struct {
 	Faction    *faction.Repository
 	Role       *role.Repository
 	Permission *permission.Repository
+	Profile    *profile.Repository
 }
 
 // initializeRepositories creates all data repositories
@@ -218,6 +220,7 @@ func initializeRepositories(db *pgxpool.Pool) *Repositories {
 		Faction:    faction.NewRepository(db),
 		Role:       role.NewRepository(db),
 		Permission: permission.NewRepository(db),
+		Profile:    profile.NewRepository(db),
 	}
 }
 
@@ -229,6 +232,7 @@ type Services struct {
 	Role       *role.Service
 	Permission *permission.Service
 	TornClient torn.Client
+	Profile    *profile.Service
 }
 
 // initializeServices creates all business logic services
@@ -240,6 +244,7 @@ func initializeServices(repos *Repositories, cfg *config.Config) *Services {
 	factionService := faction.NewService(repos.Faction, cfg, tornClient)
 	roleService := role.NewService(repos.Role, cfg)
 	permissionService := permission.NewService(repos.Permission, cfg)
+	profileService := profile.NewService(repos.Profile, cfg, tornClient)
 
 	return &Services{
 		User:       userService,
@@ -248,6 +253,7 @@ func initializeServices(repos *Repositories, cfg *config.Config) *Services {
 		Role:       roleService,
 		Permission: permissionService,
 		TornClient: tornClient,
+		Profile:    profileService,
 	}
 }
 
@@ -262,9 +268,10 @@ func initializeHTTPServer(cfg *config.Config, services *Services) (*http.Server,
 	// Create handlers
 	authHandler := auth.NewHandler(services.Auth)
 	userHandler := user.NewHandler(services.User)
+	profileHandler := profile.NewHandler(services.Profile)
 
 	// Register routes
-	registerRoutes(router, authHandler, userHandler, cfg)
+	registerRoutes(router, authHandler, userHandler, profileHandler, cfg)
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")
@@ -282,10 +289,11 @@ func initializeHTTPServer(cfg *config.Config, services *Services) (*http.Server,
 }
 
 // registerRoutes configures all API endpoints
-func registerRoutes(r *gin.Engine, authHandler *auth.Handler, userHandler *user.Handler, cfg *config.Config) {
+func registerRoutes(r *gin.Engine, authHandler *auth.Handler, userHandler *user.Handler, profileHandler *profile.Handler, cfg *config.Config) {
 	// Public routes
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
+	r.GET("/store-profile/:tornID", profileHandler.FetchAndStoreProfile)
 
 	// Protected routes
 	protected := r.Group("/")
