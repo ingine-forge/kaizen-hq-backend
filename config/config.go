@@ -20,6 +20,7 @@ type Config struct {
 	BcryptCost      int
 	DiscordBotToken string
 	TornAPI         TornAPIConfig
+	CORS            CorsConfig
 }
 
 func Load() *Config {
