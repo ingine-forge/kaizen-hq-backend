@@ -14,33 +14,22 @@ import (
 var ErrUserAlreadyExists = errors.New("user with this Torn ID already exists")
 
 type Service struct {
-	userRepo *user.Repository
-	config   *config.Config
+	userService *user.Service
+	config      *config.Config
 }
 
-func NewService(userRepo *user.Repository, cfg *config.Config) *Service {
-	return &Service{userRepo: userRepo, config: cfg}
+func NewService(userService *user.Service, cfg *config.Config) *Service {
+	return &Service{userService: userService, config: cfg}
 }
 
 func (s *Service) Register(ctx context.Context, user *user.User) error {
 	// Check if user already exists
-	_, err := s.userRepo.GetUserByTornID(ctx, user.TornID)
-	if err == nil {
-		return ErrUserAlreadyExists
-	}
-
-	// Hash password
-	hashedPassword, err := HashPassword(user.Password)
-	if err != nil {
-		return err
-	}
-	user.Password = hashedPassword
-
-	return s.userRepo.CreateUser(ctx, user)
+	_, err := s.userService.CreateUser(ctx, user)
+	return err
 }
 
 func (s *Service) Login(ctx context.Context, req *LoginRequest) (string, error) {
-	user, err := s.userRepo.GetUserByUsername(ctx, req.Username)
+	user, err := s.userService.GetUserByEmail(ctx, req.Email)
 	if err != nil {
 		return "", errors.New("invalid credentials")
 	}
@@ -52,8 +41,8 @@ func (s *Service) Login(ctx context.Context, req *LoginRequest) (string, error) 
 
 	// Generate JWT token
 	claims := &Claims{
-		TornID:   user.TornID,
-		Username: user.Username,
+		TornID: user.TornID,
+		Email:  user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

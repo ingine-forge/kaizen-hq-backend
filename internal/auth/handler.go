@@ -24,7 +24,7 @@ func (h *Handler) Register(c *gin.Context) {
 
 	user := user.User{
 		TornID:   req.TornID,
-		Username: req.Username,
+		Email: req.Email,
 		Password: req.Password,
 		APIKey:   req.APIKey,
 	}

@@ -15,19 +15,20 @@ type CorsConfig struct {
 }
 
 type Config struct {
-	DBURL      string
-	JWTSecret  string
-	BcryptCost int
-	TornAPI    TornAPIConfig
-	CORS       CorsConfig
+	DBURL           string
+	JWTSecret       string
+	BcryptCost      int
+	DiscordBotToken string
+	TornAPI         TornAPIConfig
 }
 
 func Load() *Config {
 	// Load from environment variables or .env file
 	return &Config{
-		DBURL:      os.Getenv("DB_URL"),
-		JWTSecret:  os.Getenv("JWT_SECRET"),
-		BcryptCost: getInt("BCRYPT_COST", 10),
+		DBURL:           os.Getenv("DB_URL"),
+		JWTSecret:       os.Getenv("JWT_SECRET"),
+		BcryptCost:      getInt("BCRYPT_COST", 10),
+		DiscordBotToken: os.Getenv("DISCORD_BOT_TOKEN"),
 		TornAPI: TornAPIConfig{
 			BaseURL: "https://api.torn.com/",
 		},

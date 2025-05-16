@@ -2,88 +2,287 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"kaizen-hq/bootstrap"
 	"kaizen-hq/config"
 	"kaizen-hq/internal/auth"
+	"kaizen-hq/internal/bot"
 	"kaizen-hq/internal/client/torn"
 	"kaizen-hq/internal/database"
-	"kaizen-hq/internal/energy"
 	"kaizen-hq/internal/faction"
+	"kaizen-hq/internal/permission"
+	"kaizen-hq/internal/role"
 	"kaizen-hq/internal/user"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"slices"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-co-op/gocron/v2"
+	"github.com/jackc/pgx/v5/pgxpool"
 	_ "github.com/joho/godotenv/autoload"
 )
 
+var BotID string
+
+func RunMidnightTask(factionService *faction.Service) {
+	fmt.Println("Running task at:", time.Now().UTC())
+	factionService.UpdateGymEnergy()
+}
+
 func main() {
-	// Load configuration
+	// Setup context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Load application configuration
 	cfg := config.Load()
-
-	// Initialize the database
-	db, err := database.NewDB(context.Background(), cfg)
-	if err != nil {
-		log.Fatalf("Failed to connect to database: %v", err)
+	if err := validateConfig(cfg); err != nil {
+		log.Fatalf("Invalid configuration: %v", err)
 	}
-	defer db.Close()
 
-	// Clients
+	// Initialize components
+	app, err := initializeApp(ctx, cfg)
+	if err != nil {
+		log.Fatalf("Failed to initialize application: %v", err)
+	}
+	defer app.Cleanup()
+
+	// Start all services in separate goroutines
+	errChan := make(chan error, 3) // Buffer for potential errors from services
+	app.StartServices(ctx, errChan)
+
+	// Wait for shutdown signal or error
+	shutdownApp(ctx, app, errChan, cancel)
+}
+
+// App holds all application components and services
+type App struct {
+	Bot        *bot.Bot
+	DB         *pgxpool.Pool
+	HTTPServer *http.Server
+	Scheduler  gocron.Scheduler
+}
+
+// Cleanup handles graceful shutdown of all components
+func (a *App) Cleanup() {
+	// Only attempt cleanup for initialized components
+	if a.DB != nil {
+		a.DB.Close()
+	}
+}
+
+// StartServices launches all application services in separate goroutines
+func (a *App) StartServices(ctx context.Context, errChan chan error) {
+	// Start Discord bot
+	go func() {
+		log.Println("Starting Discord bot...")
+		if err := a.Bot.Start(); err != nil {
+			errChan <- fmt.Errorf("discord bot error: %w", err)
+		}
+	}()
+
+	// Start HTTP server
+	go func() {
+		log.Printf("Starting HTTP server on %s...", a.HTTPServer.Addr)
+		if err := a.HTTPServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			errChan <- fmt.Errorf("HTTP server error: %w", err)
+		}
+	}()
+
+	// Start scheduler
+	go func() {
+		log.Println("Starting task scheduler...")
+		a.Scheduler.Start()
+	}()
+}
+
+// Shutdown performs graceful shutdown of all components
+func (a *App) Shutdown(ctx context.Context) {
+	// Create a timeout context for shutdown
+	shutdownCtx, shutdownCancel := context.WithTimeout(ctx, 5*time.Second)
+	defer shutdownCancel()
+
+	log.Println("Shutting down services...")
+
+	// Stop scheduler first
+	if a.Scheduler != nil {
+		a.Scheduler.Shutdown()
+		log.Println("Scheduler stopped")
+	}
+
+	// Stop HTTP server
+	if a.HTTPServer != nil {
+		if err := a.HTTPServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("HTTP server forced to shutdown: %v", err)
+		} else {
+			log.Println("HTTP server stopped gracefully")
+		}
+	}
+
+	// Stop Discord bot
+	if a.Bot != nil {
+		if err := a.Bot.Stop(); err != nil {
+			log.Printf("Error stopping bot: %v", err)
+		} else {
+			log.Println("Discord bot stopped gracefully")
+		}
+	}
+
+	log.Println("All services shut down successfully")
+}
+
+// validateConfig ensures configuration is valid before starting
+func validateConfig(cfg *config.Config) error {
+	if cfg.DiscordBotToken == "" {
+		return fmt.Errorf("missing Discord bot token")
+	}
+
+	// Add more validation as needed
+
+	return nil
+}
+
+// initializeApp sets up all application components
+func initializeApp(ctx context.Context, cfg *config.Config) (*App, error) {
+	app := &App{}
+
+	// Initialize Discord bot
+	bot, err := initializeBot(cfg.DiscordBotToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize bot: %w", err)
+	}
+	app.Bot = bot
+
+	// Initialize database
+	db, err := initializeDB(ctx, cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize database: %w", err)
+	}
+	app.DB = db
+
+	// Initialize repositories and services
+	repos := initializeRepositories(db)
+	services := initializeServices(repos, cfg)
+
+	// Seed system data if needed
+	if err := bootstrap.SeedSystem(ctx, services.User, services.Role, services.Permission); err != nil {
+		return nil, fmt.Errorf("failed to seed system data: %w", err)
+	}
+
+	// Initialize HTTP server
+	server, err := initializeHTTPServer(cfg, services)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize HTTP server: %w", err)
+	}
+	app.HTTPServer = server
+
+	// Initialize scheduler
+	scheduler, err := initializeScheduler(services)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize scheduler: %w", err)
+	}
+	app.Scheduler = scheduler
+
+	return app, nil
+}
+
+// initializeBot creates and configures the Discord bot
+func initializeBot(token string) (*bot.Bot, error) {
+	return bot.NewBot(token)
+}
+
+// initializeDB sets up the database connection
+func initializeDB(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error) {
+	return database.NewDB(ctx, cfg)
+}
+
+// Repositories holds all data access repositories
+type Repositories struct {
+	User       *user.Repository
+	Faction    *faction.Repository
+	Role       *role.Repository
+	Permission *permission.Repository
+}
+
+// initializeRepositories creates all data repositories
+func initializeRepositories(db *pgxpool.Pool) *Repositories {
+	return &Repositories{
+		User:       user.NewRepository(db),
+		Faction:    faction.NewRepository(db),
+		Role:       role.NewRepository(db),
+		Permission: permission.NewRepository(db),
+	}
+}
+
+// Services holds all business logic services
+type Services struct {
+	User       *user.Service
+	Auth       *auth.Service
+	Faction    *faction.Service
+	Role       *role.Service
+	Permission *permission.Service
+	TornClient torn.Client
+}
+
+// initializeServices creates all business logic services
+func initializeServices(repos *Repositories, cfg *config.Config) *Services {
 	tornClient := torn.NewTornClient(os.Getenv("API_KEY"))
 
-	// Repositories
-	userRepo := user.NewRepository(db)
-	energyRepo := energy.NewRepository(db)
-	factionRepo := faction.NewRepository(db)
+	userService := user.NewService(repos.User, cfg)
+	authService := auth.NewService(userService, cfg)
+	factionService := faction.NewService(repos.Faction, cfg, tornClient)
+	roleService := role.NewService(repos.Role, cfg)
+	permissionService := permission.NewService(repos.Permission, cfg)
 
-	// Services
-	authService := auth.NewService(userRepo, cfg)
-	userService := user.NewService(userRepo, cfg)
-	energyService := energy.NewService(energyRepo, cfg.TornAPI.BaseURL)
-	factionService := faction.NewService(factionRepo, cfg, tornClient)
+	return &Services{
+		User:       userService,
+		Auth:       authService,
+		Faction:    factionService,
+		Role:       roleService,
+		Permission: permissionService,
+		TornClient: tornClient,
+	}
+}
 
-	// Handlers
-	authHandler := *auth.NewHandler(authService)
-	energyHandler := *energy.NewHandler(energyService)
-	userHandler := *user.NewHandler(userService)
+// initializeHTTPServer sets up the HTTP server and routes
+func initializeHTTPServer(cfg *config.Config, services *Services) (*http.Server, error) {
+	// Initialize router
+	router := gin.Default()
 
-	// Run immediately on startup (for testing)
-	// go func() {
-	// 	if err := energyService.ProcessAllUsers(); err != nil {
-	// 		log.Printf("Initial energy tracking failed: %v", err)
-	// 	}
-	// }()
+	// Apply middleware
+	router.Use(corsMiddleware())
 
-	go func() {
-		if err := factionService.UpdateGymEnergy(); err != nil {
-			log.Printf("Error updating faction data: %v", err)
-		}
-	}()
+	// Create handlers
+	authHandler := auth.NewHandler(services.Auth)
+	userHandler := user.NewHandler(services.User)
 
-	// Then schedule daily runs
-	go func() {
-		for {
-			now := time.Now().UTC()
-			next := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 5, 0, time.UTC) // 00:05 UTC
-			time.Sleep(time.Until(next))
+	// Register routes
+	registerRoutes(router, authHandler, userHandler, cfg)
 
-			log.Println("Starting daily energy tracking...")
-			if err := energyService.ProcessAllUsers(); err != nil {
-				log.Printf("Daily energy tracking failed: %v", err)
-			}
-		}
-	}()
+	// Get port from environment or use default
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
 
-	gin.SetMode(gin.ReleaseMode)
-	// Create Gin router
-	r := gin.Default()
+	// Create HTTP server
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: router,
+	}
 
-	// CORS middleware
-	r.Use(corsMiddleware())
+	return server, nil
+}
 
+// registerRoutes configures all API endpoints
+func registerRoutes(r *gin.Engine, authHandler *auth.Handler, userHandler *user.Handler, cfg *config.Config) {
 	// Public routes
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
@@ -93,19 +292,66 @@ func main() {
 	protected.Use(auth.AuthMiddleware(cfg))
 	{
 		protected.GET("/user/:tornID", userHandler.GetUserByTornID)
-		protected.GET("/user/me", userHandler.GetCurrentUser)
-		protected.GET("/energyUsage", energyHandler.GetUserEnergyByID)
+		// Add more protected routes here
+	}
+}
+
+// initializeScheduler sets up scheduled tasks
+func initializeScheduler(services *Services) (gocron.Scheduler, error) {
+	// Create scheduler with UTC timezone
+	location, err := time.LoadLocation("UTC")
+	if err != nil {
+		return nil, fmt.Errorf("error loading timezone: %w", err)
 	}
 
-	// Start server
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
+	scheduler, err := gocron.NewScheduler(gocron.WithLocation(location))
+	if err != nil {
+		return nil, fmt.Errorf("error creating scheduler: %w", err)
 	}
 
-	log.Printf("Server starting on: %s", port)
-	r.Run(":" + port)
+	// Register midnight task
+	midnightCron := "0 0 * * *" // Midnight every day
+	_, err = scheduler.NewJob(
+		gocron.CronJob(midnightCron, false),
+		gocron.NewTask(func() {
+			// Original midnight task logic
+			currentTime := time.Now().UTC()
+			if currentTime.Second() != 0 {
+				waitForSecond := time.Second * time.Duration(60-currentTime.Second())
+				time.Sleep(waitForSecond)
+			}
+			// Run the midnight task with faction service
+			RunMidnightTask(services.Faction)
+		}),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error scheduling midnight task: %w", err)
+	}
 
+	return scheduler, nil
+}
+
+// shutdownApp handles application shutdown on signal or error
+func shutdownApp(ctx context.Context, app *App, errChan chan error, cancel context.CancelFunc) {
+	// Create channel for OS signals
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Wait for either error, context cancellation or termination signal
+	select {
+	case err := <-errChan:
+		log.Printf("Error occurred: %v", err)
+	case sig := <-sigChan:
+		log.Printf("Received signal: %v", sig)
+	case <-ctx.Done():
+		log.Println("Context cancelled")
+	}
+
+	// Cancel context to notify all components
+	cancel()
+
+	// Perform graceful shutdown
+	app.Shutdown(ctx)
 }
 
 // CORS middleware function definition

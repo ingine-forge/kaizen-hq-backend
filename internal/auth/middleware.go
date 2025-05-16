@@ -29,7 +29,7 @@ func AuthMiddleware(cfg *config.Config) gin.HandlerFunc {
 
 		// Add TornID & Username to context for downstream handlers
 		c.Set("torn_id", claims.TornID)
-		c.Set("username", claims.Username)
+		c.Set("username", claims.Email)
 
 		c.Next()
 	}

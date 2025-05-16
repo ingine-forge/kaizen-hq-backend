@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -19,23 +20,29 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) CreateUser(ctx context.Context, user *User) error {
-	query := `INSERT INTO users (torn_id, username, password, api_key, created_at) VALUES ($1, $2, $3, $4, $5)`
+func (r *Repository) CreateUser(ctx context.Context, user *User) (int, error) {
+	query := `INSERT INTO users (torn_id, email, password_hash, api_key, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 
-	_, err := r.db.Exec(ctx, query, user.TornID, user.Username, user.Password, user.APIKey, time.Now())
+	err := r.db.QueryRow(ctx, query, user.TornID, user.Email, user.Password, user.APIKey, time.Now()).Scan(&user.ID)
 
-	return err
+	if err != nil {
+		fmt.Println(err)
+		return 0, fmt.Errorf("failed to create user: %w", err)
+	}
+	fmt.Println("User ID found: ", user.ID)
+
+	return user.ID, err
 }
 
 // GetUserByTornID finds a user by their TornID
 func (r *Repository) GetUserByTornID(ctx context.Context, tornID int) (*User, error) {
 	user := &User{}
 
-	query := `SELECT torn_id, username, password, api_key, created_at FROM users WHERE torn_id = $1`
+	query := `SELECT id, torn_id, email, api_key, created_at FROM users WHERE torn_id = $1`
 	err := r.db.QueryRow(ctx, query, tornID).Scan(
+		&user.ID,
 		&user.TornID,
-		&user.Username,
-		&user.Password,
+		&user.Email,
 		&user.APIKey,
 		&user.CreatedAt,
 	)
@@ -50,15 +57,15 @@ func (r *Repository) GetUserByTornID(ctx context.Context, tornID int) (*User, er
 	return user, nil
 }
 
-// GetUserByUsername finds a user by their username
-func (r *Repository) GetUserByUsername(ctx context.Context, username string) (*User, error) {
+// GetUserByEmail finds a user by their username
+func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	user := &User{}
 
-	query := `SELECT torn_id, username, password, api_key, created_at FROM users WHERE username = $1`
+	query := `SELECT torn_id, email, password, api_key, created_at FROM users WHERE email = $1`
 
-	err := r.db.QueryRow(ctx, query, username).Scan(
+	err := r.db.QueryRow(ctx, query, email).Scan(
 		&user.TornID,
-		&user.Username,
+		&user.Email,
 		&user.Password,
 		&user.APIKey,
 		&user.CreatedAt,
@@ -72,4 +79,23 @@ func (r *Repository) GetUserByUsername(ctx context.Context, username string) (*U
 	}
 
 	return user, nil
+}
+
+// Count gives the number of users recorded in the database
+func (r *Repository) Count(ctx context.Context) (int, error) {
+	var count int
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// AssignRole assigns role to a user
+func (r *Repository) AssignRole(ctx context.Context, userID, roleID int) error {
+	query := `INSERT INTO user_roles (user_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`
+
+	_, err := r.db.Exec(ctx, query, userID, roleID)
+
+	return err
 }

@@ -9,19 +9,19 @@ import (
 
 type RegisterRequest struct {
 	TornID   int    `json:"torn_id" binding:"required"`
-	Username string `json:"username" binding:"required"`
+	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 	APIKey   string `json:"api_key" binding:"required"`
 }
 
 type LoginRequest struct {
-	Username string `json:"username"`
+	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 type Claims struct {
-	TornID   int    `json:"torn_id"`
-	Username string `json:"username"`
+	TornID int    `json:"torn_id"`
+	Email  string `json:"email"`
 	jwt.RegisteredClaims
 }
 
