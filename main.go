@@ -154,13 +154,6 @@ func validateConfig(cfg *config.Config) error {
 func initializeApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	app := &App{}
 
-	// Initialize Discord bot
-	bot, err := initializeBot(cfg.DiscordBotToken)
-	if err != nil {
-		return nil, fmt.Errorf("failed to initialize bot: %w", err)
-	}
-	app.Bot = bot
-
 	// Initialize database
 	db, err := initializeDB(ctx, cfg)
 	if err != nil {
@@ -191,12 +184,19 @@ func initializeApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	}
 	app.Scheduler = scheduler
 
+	// Initialize Discord bot
+	bot, err := initializeBot(cfg.DiscordBotToken, repos.Profile)
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize bot: %w", err)
+	}
+	app.Bot = bot
+
 	return app, nil
 }
 
 // initializeBot creates and configures the Discord bot
-func initializeBot(token string) (*bot.Bot, error) {
-	return bot.NewBot(token)
+func initializeBot(token string, profileRepository *profile.Repository) (*bot.Bot, error) {
+	return bot.NewBot(token, profileRepository)
 }
 
 // initializeDB sets up the database connection

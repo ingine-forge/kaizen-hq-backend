@@ -46,11 +46,24 @@ func (r *Repository) GetProfileByTornID(ctx context.Context, id int) (*Profile, 
 	return profile, nil
 }
 
-func (r *Repository) GetProfileByDiscordID(ctx context.Context, id int) (*Profile, error) {
+func (r *Repository) GetProfileByDiscordID(ctx context.Context, id string) (*Profile, error) {
 	profile := &Profile{}
 
-	query := `SELECT * FROM profiles WHERE discord = $1`
-	err := r.db.QueryRow(ctx, query, id).Scan(&profile)
+	query := `SELECT name, rank, property, donator, torn_id, profile_image, signup, awards, level, friends, enemies, discord FROM profiles WHERE discord = $1`
+	err := r.db.QueryRow(ctx, query, id).Scan(
+		&profile.Name,
+		&profile.Rank,
+		&profile.Property,
+		&profile.Donator,
+		&profile.TornID,
+		&profile.ProfileImage,
+		&profile.Signup,
+		&profile.Awards,
+		&profile.Level,
+		&profile.Friends,
+		&profile.Enemies,
+		&profile.Discord,
+	)
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
