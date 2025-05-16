@@ -3,6 +3,7 @@ package bot
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 )
@@ -17,6 +18,10 @@ var commands = []*discordgo.ApplicationCommand{
 	{
 		Name:        "ping",
 		Description: "Replies with pong",
+	},
+	{
+		Name:        "profile",
+		Description: "Displays user data",
 	},
 	// Add more commands here if you want
 }
@@ -59,14 +64,32 @@ func (b *Bot) Stop() error {
 	return b.session.Close()
 }
 
-// Register slash commands on startup
+// Register slash commands only at guild level for faster registration
 func (b *Bot) registerCommands() error {
-	for _, v := range b.commands {
-		_, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, "", v)
-		if err != nil {
-			return err
-		}
+	// If no guilds are available yet, wait a moment for the bot to connect
+	if len(b.session.State.Guilds) == 0 {
+		time.Sleep(2 * time.Second)
 	}
+
+	// Get all guilds the bot is in
+	guilds := b.session.State.Guilds
+	if len(guilds) == 0 {
+		return fmt.Errorf("bot is not in any guilds, cannot register commands")
+	}
+
+	// Register commands for each guild individually (not globally)
+	for _, guild := range guilds {
+		for _, cmd := range b.commands {
+			_, err := b.session.ApplicationCommandCreate(b.session.State.User.ID, guild.ID, cmd)
+			if err != nil {
+				return fmt.Errorf("failed to register command '%s' in guild '%s': %w",
+					cmd.Name, guild.Name, err)
+			}
+		}
+		log.Printf("Registered %d commands in guild '%s'", len(b.commands), guild.Name)
+	}
+
+	log.Printf("Successfully registered commands in %d guilds", len(guilds))
 	return nil
 }
 
@@ -114,6 +137,31 @@ func (b *Bot) handleInteraction(s *discordgo.Session, i *discordgo.InteractionCr
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
 				Content: "Pong! I'm hana still under development",
+			},
+		})
+	case "profile":
+		// Create an embed as a container for profile information
+		embed := &discordgo.MessageEmbed{
+			Title: "Professional Nudist",
+			Description: "**" + i.Member.User.Username + "** (ID: " + i.Member.User.ID + ")\n\n" +
+				"**Activity:** 35minutes/day\n" +
+				"**Xanax Usage:** 2.3/day\n" +
+				"**Gym Energy:** 950/day\n" +
+				"**Private Island:** Owned\n" +
+				"**Donator Status:** True",
+			Color: 0x800080,
+			Thumbnail: &discordgo.MessageEmbedThumbnail{
+				URL: i.Member.User.AvatarURL(""),
+			},
+			Footer: &discordgo.MessageEmbedFooter{
+				Text: "Profile as of " + time.Now().Format("January 2, 2006"),
+			},
+		}
+
+		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Embeds: []*discordgo.MessageEmbed{embed},
 			},
 		})
 	}
