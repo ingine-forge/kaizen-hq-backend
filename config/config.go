@@ -9,6 +9,11 @@ type TornAPIConfig struct {
 	BaseURL string
 }
 
+type CorsConfig struct {
+	ClientDomain string
+	ClientPort   string
+}
+
 type Config struct {
 	DBURL           string
 	JWTSecret       string
@@ -26,6 +31,10 @@ func Load() *Config {
 		DiscordBotToken: os.Getenv("DISCORD_BOT_TOKEN"),
 		TornAPI: TornAPIConfig{
 			BaseURL: "https://api.torn.com/",
+		},
+		CORS: CorsConfig{
+			ClientDomain: os.Getenv("CLIENT_DOMAIN"),
+			ClientPort:   os.Getenv("CLIENT_PORT"),
 		},
 	}
 }

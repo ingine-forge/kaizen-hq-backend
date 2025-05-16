@@ -357,7 +357,7 @@ func shutdownApp(ctx context.Context, app *App, errChan chan error, cancel conte
 // CORS middleware function definition
 func corsMiddleware() gin.HandlerFunc {
 	// Define allowed origins as a comma-separated string
-	originsString := "http://localhost:5173"
+	originsString := "http://" + config.Load().CORS.ClientDomain + ":" + config.Load().CORS.ClientPort
 	var allowedOrigins []string
 	if originsString != "" {
 		// Split the originsString into individual origins and store them in allowedOrigins slice
