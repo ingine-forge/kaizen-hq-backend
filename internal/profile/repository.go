@@ -49,7 +49,7 @@ func (r *Repository) GetProfileByTornID(ctx context.Context, id int) (*Profile, 
 func (r *Repository) GetProfileByDiscordID(ctx context.Context, id int) (*Profile, error) {
 	profile := &Profile{}
 
-	query := `SELECT * FROM profiles WHERE torn_id = $1`
+	query := `SELECT * FROM profiles WHERE discord = $1`
 	err := r.db.QueryRow(ctx, query, id).Scan(&profile)
 
 	if err != nil {
