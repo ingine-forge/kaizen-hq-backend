@@ -1,7 +1,5 @@
 package torn
 
-import "time"
-
 type StatMap map[string]map[string]ContributorInfo
 
 type ContributorInfo struct {
@@ -17,7 +15,7 @@ type Profile struct {
 	PlayerID     int            `json:"player_id"`
 	ProfileImage string         `json:"profile_image"`
 	Faction      ProfileFaction `json:"faction"`
-	Signup       time.Time      `json:"signup"`
+	Signup       string         `json:"signup"`
 	Awards       int            `json:"awards"`
 	Level        int            `json:"level"`
 	Friends      int            `json:"friends"`

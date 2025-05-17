@@ -3,8 +3,10 @@ package profile
 import (
 	"context"
 	"errors"
+	"fmt"
 	"kaizen-hq/config"
 	"kaizen-hq/internal/client/torn"
+	"time"
 )
 
 type Service struct {
@@ -20,6 +22,7 @@ func NewService(repo *Repository, cfg *config.Config, tornClient torn.Client) *S
 func (s *Service) StoreProfileForID(ctx context.Context, tornID int) error {
 	tornProfile, err := s.tornClient.FetchUserProfile(ctx, tornID)
 
+	fmt.Println(tornProfile)
 	if err != nil {
 		return errors.New("could not fetch torn profile")
 	}
@@ -29,6 +32,14 @@ func (s *Service) StoreProfileForID(ctx context.Context, tornID int) error {
 		return errors.New("could not fetch discord ID")
 	}
 
+	fmt.Println(discordID)
+	layout := "2006-01-02 15:04:05"
+	parsedTime, err := time.Parse(layout, tornProfile.Signup)
+
+	if err != nil {
+		return err
+	}
+
 	profile := Profile{
 		Name:         tornProfile.Name,
 		Rank:         tornProfile.Rank,
@@ -36,7 +47,7 @@ func (s *Service) StoreProfileForID(ctx context.Context, tornID int) error {
 		Donator:      tornProfile.Donator,
 		TornID:       tornProfile.PlayerID,
 		ProfileImage: tornProfile.ProfileImage,
-		Signup:       tornProfile.Signup,
+		Signup:       parsedTime,
 		Awards:       tornProfile.Awards,
 		Level:        tornProfile.Level,
 		Friends:      tornProfile.Friends,

@@ -25,7 +25,7 @@ func (h *Handler) FetchAndStoreProfile(c *gin.Context) {
 	}
 	err = h.service.StoreProfileForID(c.Request.Context(), tornID)
 	if err != nil {
-		c.JSON(http.StatusConflict, gin.H{"error": err})
+		c.JSON(http.StatusConflict, gin.H{"error": "error creating profile"})
 		return
 	}
 

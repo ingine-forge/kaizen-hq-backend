@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 )
@@ -59,10 +60,18 @@ func (t *tornClient) FetchUserProfile(ctx context.Context, tornID int) (*Profile
 
 	defer res.Body.Close()
 
+	body, err := io.ReadAll(res.Body)
+	if err != nil {
+		return nil, nil
+	}
+
+	fmt.Println(string(body))
 	var profile Profile
-	if err := json.NewDecoder(res.Body).Decode(&profile); err != nil {
+	if err := json.Unmarshal(body, &profile); err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
+
 	return &profile, nil
 }
 
