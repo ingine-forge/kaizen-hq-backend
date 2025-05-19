@@ -1,9 +1,7 @@
 package bot
 
 import (
-	"context"
 	"fmt"
-	"kaizen-hq/internal/profile"
 	"log"
 	"math"
 	"regexp"
@@ -23,9 +21,8 @@ const (
 )
 
 type Bot struct {
-	session           *discordgo.Session
-	profileRepository *profile.Repository
-	commands          []*discordgo.ApplicationCommand
+	session  *discordgo.Session
+	commands []*discordgo.ApplicationCommand
 }
 
 // List your commands here
@@ -53,16 +50,15 @@ var commands = []*discordgo.ApplicationCommand{
 	// Add more commands here if you want
 }
 
-func NewBot(token string, profileRepository *profile.Repository) (*Bot, error) {
+func NewBot(token string) (*Bot, error) {
 	dg, err := discordgo.New("Bot " + token)
 	if err != nil {
 		return nil, err
 	}
 
 	bot := &Bot{
-		session:           dg,
-		commands:          commands,
-		profileRepository: profileRepository,
+		session:  dg,
+		commands: commands,
 	}
 
 	dg.AddHandler(bot.handleInteraction)
@@ -178,47 +174,47 @@ func (b *Bot) handleInteraction(s *discordgo.Session, i *discordgo.InteractionCr
 		})
 	case "banker":
 		handleBankerCommand(s, i)
-	case "profile":
-		userProfile, err := b.profileRepository.GetProfileByDiscordID(context.Background(), i.Member.User.ID)
-		if err != nil {
-			fmt.Println(err)
-		}
-		var donatorStatus string
-		if userProfile.Donator == 0 {
-			donatorStatus = "False"
-		} else {
-			donatorStatus = "True"
-		}
-		// Create an embed as a container for profile information
-		embed := &discordgo.MessageEmbed{
-			Title: userProfile.Rank,
-			Description: "**" + userProfile.Name + "** (ID: " + strconv.Itoa(userProfile.TornID) + ")\n\n" +
-				"**Level:** " + strconv.Itoa(userProfile.Level) + "\n" +
-				"**Awards:** " + strconv.Itoa(userProfile.Awards) + "\n" +
-				"**Friends:** " + strconv.Itoa(userProfile.Friends) + "\n" +
-				"**Enemies:** " + strconv.Itoa(userProfile.Enemies) + "\n" +
-				"**Age:** " + strconv.Itoa(int(time.Since(userProfile.Signup).Hours())/24) + " days\n" +
-				"**Property:** " + userProfile.Property + "\n" +
-				"**Donator Status:** " + donatorStatus + "\n" +
-				"---\n" +
-				"**Activity:** 35minutes/day\n" +
-				"**Xanax Usage:** 2.3/day\n" +
-				"**Gym Energy:** 950/day\n",
-			Color: 0x800080,
-			Thumbnail: &discordgo.MessageEmbedThumbnail{
-				URL: userProfile.ProfileImage,
-			},
-			Footer: &discordgo.MessageEmbedFooter{
-				Text: "Profile as of " + time.Now().Format("January 2, 2006"),
-			},
-		}
+		// case "profile":
+		// 	userProfile, err := b.profileRepository.GetProfileByDiscordID(context.Background(), i.Member.User.ID)
+		// 	if err != nil {
+		// 		fmt.Println(err)
+		// 	}
+		// 	var donatorStatus string
+		// 	if userProfile.Donator == 0 {
+		// 		donatorStatus = "False"
+		// 	} else {
+		// 		donatorStatus = "True"
+		// 	}
+		// 	// Create an embed as a container for profile information
+		// 	embed := &discordgo.MessageEmbed{
+		// 		Title: userProfile.Rank,
+		// 		Description: "**" + userProfile.Name + "** (ID: " + strconv.Itoa(userProfile.TornID) + ")\n\n" +
+		// 			"**Level:** " + strconv.Itoa(userProfile.Level) + "\n" +
+		// 			"**Awards:** " + strconv.Itoa(userProfile.Awards) + "\n" +
+		// 			"**Friends:** " + strconv.Itoa(userProfile.Friends) + "\n" +
+		// 			"**Enemies:** " + strconv.Itoa(userProfile.Enemies) + "\n" +
+		// 			"**Age:** " + strconv.Itoa(int(time.Since(userProfile.Signup).Hours())/24) + " days\n" +
+		// 			"**Property:** " + userProfile.Property + "\n" +
+		// 			"**Donator Status:** " + donatorStatus + "\n" +
+		// 			"---\n" +
+		// 			"**Activity:** 35minutes/day\n" +
+		// 			"**Xanax Usage:** 2.3/day\n" +
+		// 			"**Gym Energy:** 950/day\n",
+		// 		Color: 0x800080,
+		// 		Thumbnail: &discordgo.MessageEmbedThumbnail{
+		// 			URL: userProfile.ProfileImage,
+		// 		},
+		// 		Footer: &discordgo.MessageEmbedFooter{
+		// 			Text: "Profile as of " + time.Now().Format("January 2, 2006"),
+		// 		},
+		// 	}
 
-		s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Embeds: []*discordgo.MessageEmbed{embed},
-			},
-		})
+		// 	s.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+		// 		Type: discordgo.InteractionResponseChannelMessageWithSource,
+		// 		Data: &discordgo.InteractionResponseData{
+		// 			Embeds: []*discordgo.MessageEmbed{embed},
+		// 		},
+		// 	})
 	}
 }
 

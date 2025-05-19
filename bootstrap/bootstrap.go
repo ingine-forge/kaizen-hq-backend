@@ -62,8 +62,7 @@ func SeedSystem(
 	passwordBytes, _ := term.ReadPassword(int(os.Stdin.Fd()))
 	adminPassword := string(passwordBytes)
 
-	fmt.Print("Enter admin's torn ID: ")
-	fmt.Scanln(&adminTornID)
+	fmt.Println()
 
 	fmt.Print("Enter admin's api key: ")
 	fmt.Scanln(&adminAPIKey)

@@ -12,7 +12,6 @@ import (
 	"kaizen-hq/internal/database"
 	"kaizen-hq/internal/faction"
 	"kaizen-hq/internal/permission"
-	"kaizen-hq/internal/profile"
 	"kaizen-hq/internal/role"
 	"log"
 	"net/http"
@@ -185,7 +184,7 @@ func initializeApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	app.Scheduler = scheduler
 
 	// Initialize Discord bot
-	bot, err := initializeBot(cfg.DiscordBotToken, repos.Profile)
+	bot, err := initializeBot(cfg.DiscordBotToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to initialize bot: %w", err)
 	}
@@ -195,8 +194,8 @@ func initializeApp(ctx context.Context, cfg *config.Config) (*App, error) {
 }
 
 // initializeBot creates and configures the Discord bot
-func initializeBot(token string, profileRepository *profile.Repository) (*bot.Bot, error) {
-	return bot.NewBot(token, profileRepository)
+func initializeBot(token string) (*bot.Bot, error) {
+	return bot.NewBot(token)
 }
 
 // initializeDB sets up the database connection
@@ -210,7 +209,6 @@ type Repositories struct {
 	Faction    *faction.Repository
 	Role       *role.Repository
 	Permission *permission.Repository
-	Profile    *profile.Repository
 }
 
 // initializeRepositories creates all data repositories
@@ -220,7 +218,6 @@ func initializeRepositories(db *pgxpool.Pool) *Repositories {
 		Faction:    faction.NewRepository(db),
 		Role:       role.NewRepository(db),
 		Permission: permission.NewRepository(db),
-		Profile:    profile.NewRepository(db),
 	}
 }
 
@@ -232,7 +229,6 @@ type Services struct {
 	Role       *role.Service
 	Permission *permission.Service
 	TornClient torn.Client
-	Profile    *profile.Service
 }
 
 // initializeServices creates all business logic services
@@ -244,7 +240,6 @@ func initializeServices(repos *Repositories, cfg *config.Config) *Services {
 	factionService := faction.NewService(repos.Faction, cfg, tornClient)
 	roleService := role.NewService(repos.Role, cfg)
 	permissionService := permission.NewService(repos.Permission, cfg)
-	profileService := profile.NewService(repos.Profile, cfg, tornClient)
 
 	return &Services{
 		User:       userService,
@@ -253,7 +248,6 @@ func initializeServices(repos *Repositories, cfg *config.Config) *Services {
 		Role:       roleService,
 		Permission: permissionService,
 		TornClient: tornClient,
-		Profile:    profileService,
 	}
 }
 
@@ -268,10 +262,9 @@ func initializeHTTPServer(cfg *config.Config, services *Services) (*http.Server,
 	// Create handlers
 	authHandler := auth.NewHandler(services.Auth)
 	userHandler := account.NewHandler(services.User)
-	profileHandler := profile.NewHandler(services.Profile)
 
 	// Register routes
-	registerRoutes(router, authHandler, userHandler, profileHandler, cfg)
+	registerRoutes(router, authHandler, userHandler, cfg)
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")
@@ -289,11 +282,10 @@ func initializeHTTPServer(cfg *config.Config, services *Services) (*http.Server,
 }
 
 // registerRoutes configures all API endpoints
-func registerRoutes(r *gin.Engine, authHandler *auth.Handler, userHandler *account.Handler, profileHandler *profile.Handler, cfg *config.Config) {
+func registerRoutes(r *gin.Engine, authHandler *auth.Handler, userHandler *account.Handler, cfg *config.Config) {
 	// Public routes
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
-	r.GET("/store-profile/:tornID", profileHandler.FetchAndStoreProfile)
 
 	// Protected routes
 	protected := r.Group("/")

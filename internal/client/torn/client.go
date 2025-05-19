@@ -11,7 +11,7 @@ import (
 
 type Client interface {
 	FetchGymEnergy(ctx context.Context, stat string) (StatMap, error)
-	FetchUserProfile(ctx context.Context, tornID int) (*Profile, error)
+	FetchTornUser(ctx context.Context, tornID int) (*Profile, error)
 	FetchDiscordID(ctx context.Context, tornID int) (string, error)
 }
 
@@ -49,7 +49,7 @@ func (t *tornClient) FetchGymEnergy(ctx context.Context, stat string) (StatMap, 
 	return parsed.Contributors, nil
 }
 
-func (t *tornClient) FetchUserProfile(ctx context.Context, tornID int) (*Profile, error) {
+func (t *tornClient) FetchTornUser(ctx context.Context, tornID int) (*Profile, error) {
 	url := fmt.Sprintf("https://api.torn.com/user/%d?key=%s&selections=profile", tornID, t.apiKey)
 
 	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
