@@ -13,6 +13,7 @@ import (
 	"kaizen-hq/internal/faction"
 	"kaizen-hq/internal/permission"
 	"kaizen-hq/internal/role"
+	"kaizen-hq/internal/user"
 	"log"
 	"net/http"
 	"os"
@@ -165,7 +166,7 @@ func initializeApp(ctx context.Context, cfg *config.Config) (*App, error) {
 	services := initializeServices(repos, cfg)
 
 	// Seed system data if needed
-	if err := bootstrap.SeedSystem(ctx, services.User, services.Role, services.Permission); err != nil {
+	if err := bootstrap.SeedSystem(ctx, services.Account, services.User, services.Role, services.Permission); err != nil {
 		return nil, fmt.Errorf("failed to seed system data: %w", err)
 	}
 
@@ -205,7 +206,8 @@ func initializeDB(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error
 
 // Repositories holds all data access repositories
 type Repositories struct {
-	User       *account.Repository
+	Account    *account.Repository
+	User       *user.Repository
 	Faction    *faction.Repository
 	Role       *role.Repository
 	Permission *permission.Repository
@@ -214,7 +216,8 @@ type Repositories struct {
 // initializeRepositories creates all data repositories
 func initializeRepositories(db *pgxpool.Pool) *Repositories {
 	return &Repositories{
-		User:       account.NewRepository(db),
+		Account:    account.NewRepository(db),
+		User:       user.NewRepository(db),
 		Faction:    faction.NewRepository(db),
 		Role:       role.NewRepository(db),
 		Permission: permission.NewRepository(db),
@@ -223,7 +226,8 @@ func initializeRepositories(db *pgxpool.Pool) *Repositories {
 
 // Services holds all business logic services
 type Services struct {
-	User       *account.Service
+	Account    *account.Service
+	User       *user.Service
 	Auth       *auth.Service
 	Faction    *faction.Service
 	Role       *role.Service
@@ -235,13 +239,15 @@ type Services struct {
 func initializeServices(repos *Repositories, cfg *config.Config) *Services {
 	tornClient := torn.NewTornClient(os.Getenv("API_KEY"))
 
-	userService := account.NewService(repos.User, cfg)
-	authService := auth.NewService(userService, cfg)
+	accountService := account.NewService(repos.Account, cfg)
+	userService := user.NewService(repos.User, cfg, tornClient)
+	authService := auth.NewService(accountService, cfg)
 	factionService := faction.NewService(repos.Faction, cfg, tornClient)
 	roleService := role.NewService(repos.Role, cfg)
 	permissionService := permission.NewService(repos.Permission, cfg)
 
 	return &Services{
+		Account:    accountService,
 		User:       userService,
 		Auth:       authService,
 		Faction:    factionService,
@@ -261,10 +267,10 @@ func initializeHTTPServer(cfg *config.Config, services *Services) (*http.Server,
 
 	// Create handlers
 	authHandler := auth.NewHandler(services.Auth)
-	userHandler := account.NewHandler(services.User)
+	accountHandler := account.NewHandler(services.Account)
 
 	// Register routes
-	registerRoutes(router, authHandler, userHandler, cfg)
+	registerRoutes(router, authHandler, accountHandler, cfg)
 
 	// Get port from environment or use default
 	port := os.Getenv("PORT")

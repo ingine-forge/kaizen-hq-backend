@@ -20,16 +20,16 @@ func (s *Service) GetAccountByTornID(
 	tornID int,
 	currentAccountTornID int,
 ) (*Account, error) {
-	user, err := s.repo.GetAccountByTornID(ctx, tornID)
+	account, err := s.repo.GetAccountByTornID(ctx, tornID)
 	if err != nil {
 		return nil, err
 	}
 
 	if tornID != currentAccountTornID {
-		user.APIKey = ""
+		account.APIKey = ""
 	}
 
-	return user, nil
+	return account, nil
 }
 
 func (s *Service) GetAccountByEmail(
@@ -52,7 +52,7 @@ func (s *Service) CreateAccount(ctx context.Context, account *Account) (int, err
 	// Check if user already exists
 	_, err := s.repo.GetAccountByTornID(ctx, account.TornID)
 	if err == nil {
-		return 0, errors.New("user with this Torn ID already exists")
+		return 0, errors.New("account with this Torn ID already exists")
 	}
 
 	// Hash password

@@ -21,13 +21,13 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 }
 
 func (r *Repository) CreateAccount(ctx context.Context, account *Account) (int, error) {
-	query := `INSERT INTO users (torn_id, email, password_hash, api_key, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
+	query := `INSERT INTO accounts (torn_id, email, password_hash, api_key, discord_id, created_at) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 
-	err := r.db.QueryRow(ctx, query, account.TornID, account.Email, account.Password, account.APIKey, time.Now()).Scan(&account.ID)
+	err := r.db.QueryRow(ctx, query, account.TornID, account.Email, account.Password, account.APIKey, account.DiscordID, time.Now()).Scan(&account.ID)
 
 	if err != nil {
 		fmt.Println(err)
-		return 0, fmt.Errorf("failed to create user: %w", err)
+		return 0, fmt.Errorf("failed to create account: %w", err)
 	}
 
 	return account.ID, err
@@ -83,7 +83,7 @@ func (r *Repository) GetAccountByEmail(ctx context.Context, email string) (*Acco
 // Count gives the number of users recorded in the database
 func (r *Repository) Count(ctx context.Context) (int, error) {
 	var count int
-	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM users`).Scan(&count)
+	err := r.db.QueryRow(ctx, `SELECT COUNT(*) FROM accounts`).Scan(&count)
 	if err != nil {
 		return 0, err
 	}

@@ -18,9 +18,9 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 }
 
 func (r *Repository) CreateUser(ctx context.Context, user User) error {
-	query := `INSERT INTO users (rank, level, honor, gender, property, signup, awards, friends, enemies, forum_posts, karma, age, role, donator, player_id, name, property_id, revivable) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18) RETURNING player_id`
+	query := `INSERT INTO users (rank, level, honor, gender, property, signup, awards, friends, enemies, forum_posts, karma, age, role, donator, player_id, name, property_id, revivable, profile_image) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING player_id`
 
-	err := r.db.QueryRow(ctx, query, user.Rank, user.Level, user.Honor, user.Gender, user.Property, user.Signup, user.Awards, user.Friends, user.Enemies, user.ForumPosts, user.Karma, user.Age, user.Role, user.Donator, user.PlayerID, user.Name, user.PropertyID, user.Revivable).Scan(&user.PlayerID)
+	err := r.db.QueryRow(ctx, query, user.Rank, user.Level, user.Honor, user.Gender, user.Property, user.Signup, user.Awards, user.Friends, user.Enemies, user.ForumPosts, user.Karma, user.Age, user.Role, user.Donator, user.PlayerID, user.Name, user.PropertyID, user.Revivable, user.ProfileImage).Scan(&user.PlayerID)
 
 	if err != nil {
 		fmt.Println(err)

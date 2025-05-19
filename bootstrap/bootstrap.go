@@ -2,10 +2,13 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"kaizen-hq/internal/account"
+	"kaizen-hq/internal/client/torn"
 	"kaizen-hq/internal/permission"
 	"kaizen-hq/internal/role"
+	"kaizen-hq/internal/user"
 	"log"
 	"os"
 
@@ -16,23 +19,71 @@ import (
 func SeedSystem(
 	ctx context.Context,
 	accountSvc *account.Service,
+	userSvc *user.Service,
 	roleSvc *role.Service,
 	permSvc *permission.Service,
 ) error {
 	// check if any users exist
-	userCount, err := accountSvc.Count(ctx)
+	if accountSvc == nil {
+		return fmt.Errorf("account service is nil")
+	}
+	accountCount, err := accountSvc.Count(ctx)
 	if err != nil {
 		return err
 	}
-	if userCount > 0 {
+	if accountCount > 0 {
 		log.Println("Bootstrap skipped: users already exist")
 		return nil
 	}
 	log.Println("Bootstrapping system...")
 
 	var adminEmail string
-	var adminTornID int
 	var adminAPIKey string
+
+	fmt.Print("Enter admin email: ")
+	fmt.Scanln(&adminEmail)
+
+	fmt.Print("Enter password: ")
+	passwordBytes, _ := term.ReadPassword(int(os.Stdin.Fd()))
+	adminPassword := string(passwordBytes)
+
+	fmt.Println()
+
+	fmt.Print("Enter admin's api key: ")
+	fmt.Scanln(&adminAPIKey)
+
+	tornClient := torn.NewTornClient(adminAPIKey)
+
+	user, err := tornClient.FetchTornUser(ctx, "")
+
+	if err != nil {
+		return err
+	}
+
+	discordID, err := tornClient.FetchDiscordID(ctx, user.PlayerID)
+
+	if err != nil {
+		discordID = ""
+		return err
+	}
+
+	err = userSvc.CreateUser(ctx, user.PlayerID)
+	if err != nil {
+		return errors.New("error creating the user")
+	}
+
+	// Create root user
+	accountID, err := accountSvc.CreateAccount(ctx, &account.Account{
+		Email:     adminEmail,
+		TornID:    user.PlayerID,
+		Password:  adminPassword,
+		APIKey:    adminAPIKey,
+		DiscordID: discordID,
+	})
+
+	if err != nil {
+		return err
+	}
 
 	// Step 1: Create roles
 	adminRole, err := roleSvc.Create(ctx, &role.Role{Name: "admin", Description: "Full access"})
@@ -55,32 +106,8 @@ func SeedSystem(
 		fmt.Println(err)
 	}
 
-	fmt.Print("Enter admin email: ")
-	fmt.Scanln(&adminEmail)
-
-	fmt.Print("Enter password: ")
-	passwordBytes, _ := term.ReadPassword(int(os.Stdin.Fd()))
-	adminPassword := string(passwordBytes)
-
-	fmt.Println()
-
-	fmt.Print("Enter admin's api key: ")
-	fmt.Scanln(&adminAPIKey)
-
-	// Create root user
-	userID, err := accountSvc.CreateAccount(ctx, &account.Account{
-		Email:    adminEmail,
-		TornID:   adminTornID,
-		Password: adminPassword,
-		APIKey:   adminAPIKey,
-	})
-
-	if err != nil {
-		return err
-	}
-
 	// Assign admin role
-	_ = accountSvc.AssignRole(ctx, userID, adminRole.ID)
+	_ = accountSvc.AssignRole(ctx, accountID, adminRole.ID)
 
 	return nil
 }
