@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"kaizen-hq/bootstrap"
 	"kaizen-hq/config"
+	"kaizen-hq/internal/account"
 	"kaizen-hq/internal/auth"
 	"kaizen-hq/internal/bot"
 	"kaizen-hq/internal/client/torn"
@@ -13,7 +14,6 @@ import (
 	"kaizen-hq/internal/permission"
 	"kaizen-hq/internal/profile"
 	"kaizen-hq/internal/role"
-	"kaizen-hq/internal/account"
 	"log"
 	"net/http"
 	"os"
@@ -206,7 +206,7 @@ func initializeDB(ctx context.Context, cfg *config.Config) (*pgxpool.Pool, error
 
 // Repositories holds all data access repositories
 type Repositories struct {
-	User       *user.Repository
+	User       *account.Repository
 	Faction    *faction.Repository
 	Role       *role.Repository
 	Permission *permission.Repository
@@ -216,7 +216,7 @@ type Repositories struct {
 // initializeRepositories creates all data repositories
 func initializeRepositories(db *pgxpool.Pool) *Repositories {
 	return &Repositories{
-		User:       user.NewRepository(db),
+		User:       account.NewRepository(db),
 		Faction:    faction.NewRepository(db),
 		Role:       role.NewRepository(db),
 		Permission: permission.NewRepository(db),
@@ -226,7 +226,7 @@ func initializeRepositories(db *pgxpool.Pool) *Repositories {
 
 // Services holds all business logic services
 type Services struct {
-	User       *user.Service
+	User       *account.Service
 	Auth       *auth.Service
 	Faction    *faction.Service
 	Role       *role.Service
@@ -239,7 +239,7 @@ type Services struct {
 func initializeServices(repos *Repositories, cfg *config.Config) *Services {
 	tornClient := torn.NewTornClient(os.Getenv("API_KEY"))
 
-	userService := user.NewService(repos.User, cfg)
+	userService := account.NewService(repos.User, cfg)
 	authService := auth.NewService(userService, cfg)
 	factionService := faction.NewService(repos.Faction, cfg, tornClient)
 	roleService := role.NewService(repos.Role, cfg)
@@ -267,7 +267,7 @@ func initializeHTTPServer(cfg *config.Config, services *Services) (*http.Server,
 
 	// Create handlers
 	authHandler := auth.NewHandler(services.Auth)
-	userHandler := user.NewHandler(services.User)
+	userHandler := account.NewHandler(services.User)
 	profileHandler := profile.NewHandler(services.Profile)
 
 	// Register routes
@@ -289,7 +289,7 @@ func initializeHTTPServer(cfg *config.Config, services *Services) (*http.Server,
 }
 
 // registerRoutes configures all API endpoints
-func registerRoutes(r *gin.Engine, authHandler *auth.Handler, userHandler *user.Handler, profileHandler *profile.Handler, cfg *config.Config) {
+func registerRoutes(r *gin.Engine, authHandler *auth.Handler, userHandler *account.Handler, profileHandler *profile.Handler, cfg *config.Config) {
 	// Public routes
 	r.POST("/register", authHandler.Register)
 	r.POST("/login", authHandler.Login)
@@ -299,7 +299,7 @@ func registerRoutes(r *gin.Engine, authHandler *auth.Handler, userHandler *user.
 	protected := r.Group("/")
 	protected.Use(auth.AuthMiddleware(cfg))
 	{
-		protected.GET("/user/:tornID", userHandler.GetUserByTornID)
+		protected.GET("/user/:tornID", userHandler.GetAccountByTornID)
 		// Add more protected routes here
 	}
 }

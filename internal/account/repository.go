@@ -1,4 +1,4 @@
-package user
+package account
 
 import (
 	"context"
@@ -20,22 +20,22 @@ func NewRepository(db *pgxpool.Pool) *Repository {
 	return &Repository{db: db}
 }
 
-func (r *Repository) CreateUser(ctx context.Context, user *User) (int, error) {
+func (r *Repository) CreateAccount(ctx context.Context, account *Account) (int, error) {
 	query := `INSERT INTO users (torn_id, email, password_hash, api_key, created_at) VALUES ($1, $2, $3, $4, $5) RETURNING id`
 
-	err := r.db.QueryRow(ctx, query, user.TornID, user.Email, user.Password, user.APIKey, time.Now()).Scan(&user.ID)
+	err := r.db.QueryRow(ctx, query, account.TornID, account.Email, account.Password, account.APIKey, time.Now()).Scan(&account.ID)
 
 	if err != nil {
 		fmt.Println(err)
 		return 0, fmt.Errorf("failed to create user: %w", err)
 	}
 
-	return user.ID, err
+	return account.ID, err
 }
 
 // GetUserByTornID finds a user by their TornID
-func (r *Repository) GetUserByTornID(ctx context.Context, tornID int) (*User, error) {
-	user := &User{}
+func (r *Repository) GetAccountByTornID(ctx context.Context, tornID int) (*Account, error) {
+	user := &Account{}
 
 	query := `SELECT id, torn_id, email, api_key, created_at FROM users WHERE torn_id = $1`
 	err := r.db.QueryRow(ctx, query, tornID).Scan(
@@ -57,8 +57,8 @@ func (r *Repository) GetUserByTornID(ctx context.Context, tornID int) (*User, er
 }
 
 // GetUserByEmail finds a user by their username
-func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*User, error) {
-	user := &User{}
+func (r *Repository) GetAccountByEmail(ctx context.Context, email string) (*Account, error) {
+	user := &Account{}
 
 	query := `SELECT torn_id, email, password, api_key, created_at FROM users WHERE email = $1`
 

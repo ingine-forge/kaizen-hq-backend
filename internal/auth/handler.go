@@ -22,7 +22,7 @@ func (h *Handler) Register(c *gin.Context) {
 		return
 	}
 
-	user := user.User{
+	user := account.Account{
 		TornID:   req.TornID,
 		Email: req.Email,
 		Password: req.Password,

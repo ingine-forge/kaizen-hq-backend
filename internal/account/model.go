@@ -1,4 +1,4 @@
-package user
+package account
 
 import (
 	"kaizen-hq/config"
@@ -7,13 +7,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
+type Account struct {
 	ID        int       `json:"id"`
 	Email     string    `json:"email"`
 	TornID    int       `json:"torn_id"`
 	Password  string    `json:"-"` // Skip in JSON responses
 	APIKey    string    `json:"api_key,omitempty"`
+	DiscordID string    `json:"discord_id"`
 	CreatedAt time.Time `json:"created_at"`
+	LastLogin time.Time `json:"last_login"`
 }
 
 // HashPassword takes a plain text password and creates a hashed version

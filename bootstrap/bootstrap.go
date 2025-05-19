@@ -3,9 +3,9 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"kaizen-hq/internal/account"
 	"kaizen-hq/internal/permission"
 	"kaizen-hq/internal/role"
-	"kaizen-hq/internal/account"
 	"log"
 	"os"
 
@@ -15,12 +15,12 @@ import (
 // * Seedsystem populates the database when first created with admin data
 func SeedSystem(
 	ctx context.Context,
-	userSvc *user.Service,
+	accountSvc *account.Service,
 	roleSvc *role.Service,
 	permSvc *permission.Service,
 ) error {
 	// check if any users exist
-	userCount, err := userSvc.Count(ctx)
+	userCount, err := accountSvc.Count(ctx)
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func SeedSystem(
 	fmt.Scanln(&adminAPIKey)
 
 	// Create root user
-	userID, err := userSvc.CreateUser(ctx, &user.User{
+	userID, err := accountSvc.CreateAccount(ctx, &account.Account{
 		Email:    adminEmail,
 		TornID:   adminTornID,
 		Password: adminPassword,
@@ -81,7 +81,7 @@ func SeedSystem(
 	}
 
 	// Assign admin role
-	_ = userSvc.AssignRole(ctx, userID, adminRole.ID)
+	_ = accountSvc.AssignRole(ctx, userID, adminRole.ID)
 
 	return nil
 }

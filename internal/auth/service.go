@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"kaizen-hq/config"
-	user "kaizen-hq/internal/account"
+	"kaizen-hq/internal/account"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -14,22 +14,22 @@ import (
 var ErrUserAlreadyExists = errors.New("user with this Torn ID already exists")
 
 type Service struct {
-	userService *user.Service
-	config      *config.Config
+	accountService *account.Service
+	config         *config.Config
 }
 
-func NewService(userService *user.Service, cfg *config.Config) *Service {
-	return &Service{userService: userService, config: cfg}
+func NewService(accountService *account.Service, cfg *config.Config) *Service {
+	return &Service{accountService: accountService, config: cfg}
 }
 
-func (s *Service) Register(ctx context.Context, user *user.User) error {
+func (s *Service) Register(ctx context.Context, account *account.Account) error {
 	// Check if user already exists
-	_, err := s.userService.CreateUser(ctx, user)
+	_, err := s.accountService.CreateAccount(ctx, account)
 	return err
 }
 
 func (s *Service) Login(ctx context.Context, req *LoginRequest) (string, error) {
-	user, err := s.userService.GetUserByEmail(ctx, req.Email)
+	user, err := s.accountService.GetAccountByEmail(ctx, req.Email)
 	if err != nil {
 		return "", errors.New("invalid credentials")
 	}

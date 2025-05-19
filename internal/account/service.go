@@ -1,4 +1,4 @@
-package user
+package account
 
 import (
 	"context"
@@ -15,28 +15,28 @@ func NewService(repo *Repository, cfg *config.Config) *Service {
 	return &Service{repo: repo, config: cfg}
 }
 
-func (s *Service) GetUserByTornID(
+func (s *Service) GetAccountByTornID(
 	ctx context.Context,
 	tornID int,
-	currentUserTornID int,
-) (*User, error) {
-	user, err := s.repo.GetUserByTornID(ctx, tornID)
+	currentAccountTornID int,
+) (*Account, error) {
+	user, err := s.repo.GetAccountByTornID(ctx, tornID)
 	if err != nil {
 		return nil, err
 	}
 
-	if tornID != currentUserTornID {
+	if tornID != currentAccountTornID {
 		user.APIKey = ""
 	}
 
 	return user, nil
 }
 
-func (s *Service) GetUserByEmail(
+func (s *Service) GetAccountByEmail(
 	ctx context.Context,
-	username string,
-) (*User, error) {
-	user, err := s.repo.GetUserByEmail(ctx, username)
+	email string,
+) (*Account, error) {
+	user, err := s.repo.GetAccountByEmail(ctx, email)
 	if err != nil {
 		return nil, err
 	}
@@ -48,23 +48,23 @@ func (s *Service) Count(ctx context.Context) (int, error) {
 	return s.repo.Count(ctx)
 }
 
-func (s *Service) CreateUser(ctx context.Context, user *User) (int, error) {
+func (s *Service) CreateAccount(ctx context.Context, account *Account) (int, error) {
 	// Check if user already exists
-	_, err := s.repo.GetUserByTornID(ctx, user.TornID)
+	_, err := s.repo.GetAccountByTornID(ctx, account.TornID)
 	if err == nil {
 		return 0, errors.New("user with this Torn ID already exists")
 	}
 
 	// Hash password
-	hashedPassword, err := HashPassword(user.Password)
+	hashedPassword, err := HashPassword(account.Password)
 	if err != nil {
 		return 0, err
 	}
-	user.Password = hashedPassword
+	account.Password = hashedPassword
 
-	return s.repo.CreateUser(ctx, user)
+	return s.repo.CreateAccount(ctx, account)
 }
 
-func (s *Service) AssignRole(ctx context.Context, userID, roleID int) error {
-	return s.repo.AssignRole(ctx, userID, roleID)
+func (s *Service) AssignRole(ctx context.Context, accountID, roleID int) error {
+	return s.repo.AssignRole(ctx, accountID, roleID)
 }
