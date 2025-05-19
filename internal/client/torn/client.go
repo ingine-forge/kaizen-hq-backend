@@ -13,6 +13,7 @@ type Client interface {
 	FetchGymEnergy(ctx context.Context, stat string) (StatMap, error)
 	FetchTornUser(ctx context.Context, tornID string) (*User, error)
 	FetchDiscordID(ctx context.Context, tornID int) (string, error)
+	FetchKeyDetails(ctx context.Context) (int, error)
 }
 
 type tornClient struct {
@@ -92,4 +93,24 @@ func (t *tornClient) FetchDiscordID(ctx context.Context, tornID int) (string, er
 		return "", err
 	}
 	return parsed.Discord.DiscordID, nil
+}
+
+func (t *tornClient) FetchKeyDetails(ctx context.Context) (int, error) {
+	url := fmt.Sprintf("https://api.torn.com/key/?key=%s&selections=info", t.apiKey)
+
+	req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	res, err := t.client.Do(req)
+	if err != nil {
+		return 404, err // 404 is a random number that signifies not found
+	}
+
+	defer res.Body.Close()
+
+	var key Key
+
+	if err := json.NewDecoder(res.Body).Decode(&key); err != nil {
+		return 400, err // 400 is the http status code for bad request
+	}
+
+	return key.AccessLevel, nil
 }

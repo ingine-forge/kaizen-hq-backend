@@ -8,7 +8,6 @@ import (
 )
 
 type RegisterRequest struct {
-	TornID   int    `json:"torn_id" binding:"required"`
 	Email    string `json:"email" binding:"required"`
 	Password string `json:"password" binding:"required"`
 	APIKey   string `json:"api_key" binding:"required"`

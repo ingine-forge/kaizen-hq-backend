@@ -39,3 +39,8 @@ type Discord struct {
 	UserID    int    `json:"userID"`
 	DiscordID string `json:"discordID"`
 }
+
+type Key struct {
+	AccessLevel int    `json:"access_level"`
+	AccessType  string `json:"access_type"`
+}

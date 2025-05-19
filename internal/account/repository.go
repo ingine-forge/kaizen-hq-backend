@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -58,16 +59,16 @@ func (r *Repository) GetAccountByTornID(ctx context.Context, tornID int) (*Accou
 
 // GetUserByEmail finds a user by their username
 func (r *Repository) GetAccountByEmail(ctx context.Context, email string) (*Account, error) {
-	user := &Account{}
+	log.Printf("Getting the account with email %v\n", email)
+	account := &Account{}
 
-	query := `SELECT torn_id, email, password, api_key, created_at FROM users WHERE email = $1`
+	query := `SELECT torn_id, email, api_key, created_at FROM accounts WHERE email = $1`
 
 	err := r.db.QueryRow(ctx, query, email).Scan(
-		&user.TornID,
-		&user.Email,
-		&user.Password,
-		&user.APIKey,
-		&user.CreatedAt,
+		&account.TornID,
+		&account.Email,
+		&account.APIKey,
+		&account.CreatedAt,
 	)
 
 	if err != nil {
@@ -77,7 +78,7 @@ func (r *Repository) GetAccountByEmail(ctx context.Context, email string) (*Acco
 		return nil, err
 	}
 
-	return user, nil
+	return account, nil
 }
 
 // Count gives the number of users recorded in the database

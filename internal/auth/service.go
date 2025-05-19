@@ -6,12 +6,20 @@ import (
 	"fmt"
 	"kaizen-hq/config"
 	"kaizen-hq/internal/account"
+	"kaizen-hq/internal/client/torn"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var ErrUserAlreadyExists = errors.New("user with this Torn ID already exists")
+const (
+	ErrEmailAlreadyRegistered = "user with this email is already registered"
+	ErrInvalidAPIKey          = "the api key provided could not be verified"
+	ErrInvalidAPIKeyAccess    = "the api key must be of either limited access or full access"
+	ErrUserNotFound           = "trouble finding the user in torn"
+	ErrUserAlreadyRegistered  = "the user with this api key is already registered"
+	ErrAccountCreationFailed  = "failed to create new account"
+)
 
 type Service struct {
 	accountService *account.Service
@@ -22,10 +30,61 @@ func NewService(accountService *account.Service, cfg *config.Config) *Service {
 	return &Service{accountService: accountService, config: cfg}
 }
 
+// Helper method to verify API key
+func (s *Service) verifyAPIKey(ctx context.Context, client torn.Client) (int, error) {
+	accessLevel, err := client.FetchKeyDetails(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("API key verification failed: %w", err)
+	}
+	return accessLevel, nil
+}
+
+// Helper method to fetch Torn user
+func (s *Service) fetchTornUser(ctx context.Context, client torn.Client) (*torn.User, error) {
+	user, err := client.FetchTornUser(ctx, "")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Torn user details: %w", err)
+	}
+	return user, nil
+}
+
 func (s *Service) Register(ctx context.Context, account *account.Account) error {
-	// Check if user already exists
-	_, err := s.accountService.CreateAccount(ctx, account)
-	return err
+	// Check if the user with the email already exists
+	_, err := s.accountService.GetAccountByEmail(ctx, account.Email)
+	if err == nil {
+		return errors.New(ErrEmailAlreadyRegistered)
+	}
+
+	tornClient := torn.NewTornClient(account.APIKey)
+
+	// Verify if API key is valid
+	accessLevel, err := s.verifyAPIKey(ctx, tornClient)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrInvalidAPIKey, err)
+	}
+
+	if accessLevel < 3 {
+		return errors.New(ErrInvalidAPIKeyAccess)
+	}
+
+	// Check if the user already exists in the database using the Torn ID
+	user, err := s.fetchTornUser(ctx, tornClient)
+	if err != nil {
+		return fmt.Errorf("%s: %w", ErrUserNotFound, err)
+	}
+
+	_, err = s.accountService.GetAccountByTornID(ctx, user.PlayerID, user.PlayerID)
+	if err == nil {
+		return fmt.Errorf(ErrUserAlreadyRegistered+": %d", user.PlayerID)
+	}
+
+	// Create a new account
+	_, err = s.accountService.CreateAccount(ctx, account)
+	if err != nil {
+		return fmt.Errorf(ErrAccountCreationFailed+": %w", err)
+	}
+
+	return nil
 }
 
 func (s *Service) Login(ctx context.Context, req *LoginRequest) (string, error) {
