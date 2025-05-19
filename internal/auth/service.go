@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"kaizen-hq/config"
-	"kaizen-hq/internal/user"
+	user "kaizen-hq/internal/account"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"

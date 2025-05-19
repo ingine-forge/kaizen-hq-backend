@@ -1,7 +1,7 @@
 package auth
 
 import (
-	"kaizen-hq/internal/user"
+	"kaizen-hq/internal/account"
 	"net/http"
 
 	"github.com/gin-gonic/gin"

@@ -13,7 +13,7 @@ import (
 	"kaizen-hq/internal/permission"
 	"kaizen-hq/internal/profile"
 	"kaizen-hq/internal/role"
-	"kaizen-hq/internal/user"
+	"kaizen-hq/internal/account"
 	"log"
 	"net/http"
 	"os"

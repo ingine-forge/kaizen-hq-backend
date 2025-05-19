@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"kaizen-hq/internal/permission"
 	"kaizen-hq/internal/role"
-	"kaizen-hq/internal/user"
+	"kaizen-hq/internal/account"
 	"log"
 	"os"
 

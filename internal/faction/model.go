@@ -1,7 +1,6 @@
 package faction
 
 import (
-	"kaizen-hq/internal/user"
 	"time"
 )
 
@@ -16,17 +15,16 @@ type UserGymEnergy struct {
 }
 
 type Faction struct {
-	ID        int         `json:"ID"`
-	Name      string      `json:"name"`
-	Tag       string      `json:"tag"`
-	TagImage  string      `json:"tag_image"`
-	Leader    int         `json:"leader"`
-	CoLeader  int         `json:"co-leader"`
-	Respect   int         `json:"respect"`
-	Age       int         `json:"age"`
-	Capacity  int         `json:"capacity"`
-	BestChain int         `json:"best_chain"`
-	Members   []user.User `json:"members"`
+	ID        int    `json:"ID"`
+	Name      string `json:"name"`
+	Tag       string `json:"tag"`
+	TagImage  string `json:"tag_image"`
+	Leader    int    `json:"leader"`
+	CoLeader  int    `json:"co-leader"`
+	Respect   int    `json:"respect"`
+	Age       int    `json:"age"`
+	Capacity  int    `json:"capacity"`
+	BestChain int    `json:"best_chain"`
 }
 
 type Position struct {
