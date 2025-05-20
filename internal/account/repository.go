@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -59,14 +58,14 @@ func (r *Repository) GetAccountByTornID(ctx context.Context, tornID int) (*Accou
 
 // GetUserByEmail finds a user by their username
 func (r *Repository) GetAccountByEmail(ctx context.Context, email string) (*Account, error) {
-	log.Printf("Getting the account with email %v\n", email)
 	account := &Account{}
 
-	query := `SELECT torn_id, email, api_key, created_at FROM accounts WHERE email = $1`
+	query := `SELECT torn_id, email, password_hash, api_key, created_at FROM accounts WHERE email = $1`
 
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&account.TornID,
 		&account.Email,
+		&account.Password,
 		&account.APIKey,
 		&account.CreatedAt,
 	)
