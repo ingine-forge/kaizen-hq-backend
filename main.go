@@ -241,7 +241,7 @@ func initializeServices(repos *Repositories, cfg *config.Config) *Services {
 
 	accountService := account.NewService(repos.Account, cfg)
 	userService := user.NewService(repos.User, cfg, tornClient)
-	authService := auth.NewService(accountService, cfg)
+	authService := auth.NewService(accountService, userService, cfg, tornClient)
 	factionService := faction.NewService(repos.Faction, cfg, tornClient)
 	roleService := role.NewService(repos.Role, cfg)
 	permissionService := permission.NewService(repos.Permission, cfg)

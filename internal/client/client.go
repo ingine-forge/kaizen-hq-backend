@@ -64,7 +64,7 @@ const (
 	YataAPI      TornAPIProvider = "https://yata.yt/api"
 
 	// Default API version
-	DefaultVersion = "v1"
+	DefaultVersion = ""
 )
 
 type client struct {
@@ -74,8 +74,8 @@ type client struct {
 }
 
 /*
-	NewClient creates a new client based on options provided.
-	It defaults to use the torn api v1 but can be configured as per need.
+NewClient creates a new client based on options provided.
+It defaults to use the torn api v1 but can be configured as per need.
 */
 func NewClient(opts ...ClientOption) Client {
 	client := &client{
@@ -146,7 +146,7 @@ func (t *client) buildURL(apiKey, endpoint, selections string, params map[string
 }
 
 // makeRequest handles the HTTP request and response
-func (t *client) makeRequest(ctx context.Context, apiKey, url string, result interface{}) error {
+func (t *client) makeRequest(ctx context.Context, url string, result any) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return err
@@ -179,7 +179,7 @@ func (t *client) FetchGymEnergy(ctx context.Context, apiKey, stat string) (StatM
 		Error        *APIError `json:"error"`
 	}
 
-	if err := t.makeRequest(ctx, apiKey, url, &parsed); err != nil {
+	if err := t.makeRequest(ctx, url, &parsed); err != nil {
 		return nil, err
 	}
 
@@ -243,7 +243,7 @@ func (t *client) FetchDiscordID(ctx context.Context, apiKey string, tornID int) 
 		Error   *APIError `json:"error"`
 	}
 
-	if err := t.makeRequest(ctx, apiKey, url, &parsed); err != nil {
+	if err := t.makeRequest(ctx, url, &parsed); err != nil {
 		return "", err
 	}
 
@@ -260,20 +260,13 @@ func (t *client) FetchKeyDetails(ctx context.Context, apiKey string) (int, error
 		return 0, err
 	}
 
-	var key struct {
-		Key   Key       `json:""`
-		Error *APIError `json:"error"`
-	}
+	var key Key
 
-	if err := t.makeRequest(ctx, apiKey, url, &key); err != nil {
+	if err := t.makeRequest(ctx, url, &key); err != nil {
 		return 0, err
 	}
 
-	if key.Error != nil {
-		return 0, key.Error
-	}
-
-	return key.Key.AccessLevel, nil
+	return key.AccessLevel, nil
 }
 
 // APIError represents an error from the Torn API

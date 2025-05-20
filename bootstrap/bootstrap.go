@@ -11,6 +11,7 @@ import (
 	"kaizen-hq/internal/user"
 	"log"
 	"os"
+	"strconv"
 
 	"golang.org/x/term"
 )
@@ -67,7 +68,7 @@ func SeedSystem(
 		return err
 	}
 
-	err = userSvc.CreateUser(ctx, user.PlayerID, adminAPIKey)
+	_, err = userSvc.EnsureUserExists(ctx, strconv.Itoa(user.PlayerID), adminAPIKey)
 	if err != nil {
 		return errors.New("error creating the user")
 	}

@@ -3,9 +3,9 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 	"kaizen-hq/config"
 	"kaizen-hq/internal/client"
-	"strconv"
 )
 
 type Service struct {
@@ -30,17 +30,15 @@ func (s *Service) GetUserByPlayerID(
 	return user, nil
 }
 
-func (s *Service) CreateUser(ctx context.Context, playerID int, apiKey string) error {
+func (s *Service) CreateUserIfNotExists(ctx context.Context, tornUser *client.User) error {
 	// Check if user already exists
-	_, err := s.repo.GetUserByPlayerID(ctx, playerID)
+	_, err := s.repo.GetUserByPlayerID(ctx, tornUser.PlayerID)
 	if err == nil {
-		return errors.New("user with this Torn ID already exists")
+		return nil // No-op; user already exists
 	}
 
-	// Fetch the user using torn client
-	tornUser, err := s.tornClient.FetchTornUser(ctx, apiKey, strconv.Itoa(playerID))
-	if err != nil {
-		return errors.New("trouble fetching torn user")
+	if !errors.Is(err, ErrProfileNotFound) {
+		return fmt.Errorf("failed to check if user exists: %w", err)
 	}
 
 	user := User{
@@ -58,7 +56,7 @@ func (s *Service) CreateUser(ctx context.Context, playerID int, apiKey string) e
 		Age:          tornUser.Age,
 		Role:         tornUser.Role,
 		Donator:      tornUser.Donator,
-		PlayerID:     playerID,
+		PlayerID:     tornUser.PlayerID,
 		Name:         tornUser.Name,
 		PropertyID:   tornUser.PropertyID,
 		Revivable:    tornUser.Revivable,
@@ -66,4 +64,16 @@ func (s *Service) CreateUser(ctx context.Context, playerID int, apiKey string) e
 	}
 
 	return s.repo.CreateUser(ctx, user)
+}
+
+func (s *Service) EnsureUserExists(ctx context.Context, tornID string, apiKey string) (*User, error) {
+	tornUser, err := s.tornClient.FetchTornUser(ctx, apiKey, tornID)
+	if err != nil {
+		return nil, err
+	}
+	err = s.CreateUserIfNotExists(ctx, tornUser)
+	if err != nil {
+		return nil, err
+	}
+	return &User{PlayerID: tornUser.PlayerID, Name: tornUser.Name}, nil
 }

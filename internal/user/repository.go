@@ -9,6 +9,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+var ErrProfileNotFound = errors.New("profile not found")
+
 type Repository struct {
 	db *pgxpool.Pool
 }
@@ -38,7 +40,7 @@ func (r *Repository) GetUserByPlayerID(ctx context.Context, id int) (*User, erro
 
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, errors.New("profile not found")
+			return nil, ErrProfileNotFound
 		}
 	}
 
@@ -53,7 +55,7 @@ func (r *Repository) UpdateUser(ctx context.Context, user User) error {
            WHERE player_id = $18
            RETURNING player_id`
 
-	params := []interface{}{
+	params := []any{
 		user.Rank, user.Level, user.Honor, user.Gender, user.Property, user.Signup,
 		user.Awards, user.Friends, user.Enemies, user.ForumPosts, user.Karma, user.Age,
 		user.Role, user.Donator, user.Name, user.PropertyID, user.Revivable, user.PlayerID,
