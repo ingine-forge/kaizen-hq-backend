@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"kaizen-hq/config"
 	"kaizen-hq/internal/account"
-	"kaizen-hq/internal/client/torn"
+	"kaizen-hq/internal/client"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,6 +24,7 @@ const (
 type Service struct {
 	accountService *account.Service
 	config         *config.Config
+	tornClient     client.Client
 }
 
 func NewService(accountService *account.Service, cfg *config.Config) *Service {
@@ -31,8 +32,8 @@ func NewService(accountService *account.Service, cfg *config.Config) *Service {
 }
 
 // Helper method to verify API key
-func (s *Service) verifyAPIKey(ctx context.Context, client torn.Client) (int, error) {
-	accessLevel, err := client.FetchKeyDetails(ctx)
+func (s *Service) verifyAPIKey(ctx context.Context, apiKey string) (int, error) {
+	accessLevel, err := s.tornClient.FetchKeyDetails(ctx, apiKey)
 	if err != nil {
 		return 0, fmt.Errorf("API key verification failed: %w", err)
 	}
@@ -40,8 +41,8 @@ func (s *Service) verifyAPIKey(ctx context.Context, client torn.Client) (int, er
 }
 
 // Helper method to fetch Torn user
-func (s *Service) fetchTornUser(ctx context.Context, client torn.Client) (*torn.User, error) {
-	user, err := client.FetchTornUser(ctx, "")
+func (s *Service) fetchTornUser(ctx context.Context, apiKey string) (*client.User, error) {
+	user, err := s.tornClient.FetchTornUser(ctx, apiKey, "")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch Torn user details: %w", err)
 	}
@@ -55,10 +56,8 @@ func (s *Service) Register(ctx context.Context, account *account.Account) error 
 		return errors.New(ErrEmailAlreadyRegistered)
 	}
 
-	tornClient := torn.NewTornClient(account.APIKey)
-
 	// Verify if API key is valid
-	accessLevel, err := s.verifyAPIKey(ctx, tornClient)
+	accessLevel, err := s.verifyAPIKey(ctx, account.APIKey)
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrInvalidAPIKey, err)
 	}
@@ -68,7 +67,7 @@ func (s *Service) Register(ctx context.Context, account *account.Account) error 
 	}
 
 	// Check if the user already exists in the database using the Torn ID
-	user, err := s.fetchTornUser(ctx, tornClient)
+	user, err := s.fetchTornUser(ctx, account.APIKey)
 	if err != nil {
 		return fmt.Errorf("%s: %w", ErrUserNotFound, err)
 	}

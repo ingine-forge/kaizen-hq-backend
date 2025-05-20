@@ -1,4 +1,4 @@
-package torn
+package client
 
 type StatMap map[string]map[string]ContributorInfo
 

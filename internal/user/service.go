@@ -4,17 +4,17 @@ import (
 	"context"
 	"errors"
 	"kaizen-hq/config"
-	"kaizen-hq/internal/client/torn"
+	"kaizen-hq/internal/client"
 	"strconv"
 )
 
 type Service struct {
 	repo       *Repository
 	config     *config.Config
-	tornClient torn.Client
+	tornClient client.Client
 }
 
-func NewService(repo *Repository, cfg *config.Config, tornClient torn.Client) *Service {
+func NewService(repo *Repository, cfg *config.Config, tornClient client.Client) *Service {
 	return &Service{repo: repo, config: cfg, tornClient: tornClient}
 }
 
@@ -30,7 +30,7 @@ func (s *Service) GetUserByPlayerID(
 	return user, nil
 }
 
-func (s *Service) CreateUser(ctx context.Context, playerID int) error {
+func (s *Service) CreateUser(ctx context.Context, playerID int, apiKey string) error {
 	// Check if user already exists
 	_, err := s.repo.GetUserByPlayerID(ctx, playerID)
 	if err == nil {
@@ -38,7 +38,7 @@ func (s *Service) CreateUser(ctx context.Context, playerID int) error {
 	}
 
 	// Fetch the user using torn client
-	tornUser, err := s.tornClient.FetchTornUser(ctx, strconv.Itoa(playerID))
+	tornUser, err := s.tornClient.FetchTornUser(ctx, apiKey, strconv.Itoa(playerID))
 	if err != nil {
 		return errors.New("trouble fetching torn user")
 	}

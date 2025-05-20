@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"kaizen-hq/internal/account"
-	"kaizen-hq/internal/client/torn"
+	"kaizen-hq/internal/client"
 	"kaizen-hq/internal/permission"
 	"kaizen-hq/internal/role"
 	"kaizen-hq/internal/user"
@@ -52,22 +52,22 @@ func SeedSystem(
 	fmt.Print("Enter admin's api key: ")
 	fmt.Scanln(&adminAPIKey)
 
-	tornClient := torn.NewTornClient(adminAPIKey)
+	tornClient := client.NewClient()
 
-	user, err := tornClient.FetchTornUser(ctx, "")
+	user, err := tornClient.FetchTornUser(ctx, adminAPIKey, "")
 
 	if err != nil {
 		return err
 	}
 
-	discordID, err := tornClient.FetchDiscordID(ctx, user.PlayerID)
+	discordID, err := tornClient.FetchDiscordID(ctx, adminAPIKey, user.PlayerID)
 
 	if err != nil {
 		discordID = ""
 		return err
 	}
 
-	err = userSvc.CreateUser(ctx, user.PlayerID)
+	err = userSvc.CreateUser(ctx, user.PlayerID, adminAPIKey)
 	if err != nil {
 		return errors.New("error creating the user")
 	}

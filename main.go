@@ -8,7 +8,7 @@ import (
 	"kaizen-hq/internal/account"
 	"kaizen-hq/internal/auth"
 	"kaizen-hq/internal/bot"
-	"kaizen-hq/internal/client/torn"
+	"kaizen-hq/internal/client"
 	"kaizen-hq/internal/database"
 	"kaizen-hq/internal/faction"
 	"kaizen-hq/internal/permission"
@@ -34,7 +34,7 @@ var BotID string
 
 func RunMidnightTask(factionService *faction.Service) {
 	fmt.Println("Running task at:", time.Now().UTC())
-	factionService.UpdateGymEnergy()
+	// factionService.UpdateGymEnergy()
 }
 
 func main() {
@@ -232,12 +232,12 @@ type Services struct {
 	Faction    *faction.Service
 	Role       *role.Service
 	Permission *permission.Service
-	TornClient torn.Client
+	TornClient client.Client
 }
 
 // initializeServices creates all business logic services
 func initializeServices(repos *Repositories, cfg *config.Config) *Services {
-	tornClient := torn.NewTornClient(os.Getenv("API_KEY"))
+	tornClient := client.NewClient()
 
 	accountService := account.NewService(repos.Account, cfg)
 	userService := user.NewService(repos.User, cfg, tornClient)

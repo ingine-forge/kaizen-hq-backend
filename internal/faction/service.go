@@ -3,27 +3,27 @@ package faction
 import (
 	"context"
 	"kaizen-hq/config"
-	"kaizen-hq/internal/client/torn"
+	"kaizen-hq/internal/client"
 	"time"
 )
 
 type Service struct {
 	repo       *Repository
 	config     *config.Config
-	tornClient torn.Client
+	tornClient client.Client
 }
 
-func NewService(repo *Repository, cfg *config.Config, tornClient torn.Client) *Service {
+func NewService(repo *Repository, cfg *config.Config, tornClient client.Client) *Service {
 	return &Service{repo: repo, config: cfg, tornClient: tornClient}
 }
 
 func (s *Service) MergeAndSaveGymEnergy(
-	strengthData, speedData, defenseData, dexterityData torn.StatMap,
+	strengthData, speedData, defenseData, dexterityData client.StatMap,
 ) error {
 	userStats := map[string]*UserGymEnergy{}
 	now := time.Now()
 
-	merge := func(data torn.StatMap, field string) {
+	merge := func(data client.StatMap, field string) {
 		for _, users := range data {
 			for userID, info := range users {
 
@@ -59,25 +59,25 @@ func (s *Service) MergeAndSaveGymEnergy(
 	return s.repo.SaveContributors(context.Background(), energyList)
 }
 
-func (s *Service) UpdateGymEnergy() error {
+func (s *Service) UpdateGymEnergy(apiKey string) error {
 	ctx := context.Background()
 
-	strengthData, err := s.tornClient.FetchGymEnergy(ctx, "gymstrength")
+	strengthData, err := s.tornClient.FetchGymEnergy(ctx, apiKey, "gymstrength")
 	if err != nil {
 		return err
 	}
 
-	speedData, err := s.tornClient.FetchGymEnergy(ctx, "gymspeed")
+	speedData, err := s.tornClient.FetchGymEnergy(ctx, apiKey, "gymspeed")
 	if err != nil {
 		return err
 	}
 
-	defenseData, err := s.tornClient.FetchGymEnergy(ctx, "gymdefense")
+	defenseData, err := s.tornClient.FetchGymEnergy(ctx, apiKey, "gymdefense")
 	if err != nil {
 		return err
 	}
 
-	dexterityData, err := s.tornClient.FetchGymEnergy(ctx, "gymdexterity")
+	dexterityData, err := s.tornClient.FetchGymEnergy(ctx, apiKey, "gymdexterity")
 	if err != nil {
 		return err
 	}
